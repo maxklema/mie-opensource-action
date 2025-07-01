@@ -12,8 +12,8 @@ jobs:
       - name: Set up Enviornment Variables
         run: echo "Enviornment variables set"
         env:
-          CONTAINER_NAME: pr-test
-          CONTAINER_PASSWORD: mie123!!
+          CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
+          CONTAINER_PASSWORD: L3arNAtM1E!
           PROXMOX_USERNAME: mklema
           PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
           HTTP_PORT: 80
@@ -23,12 +23,6 @@ jobs:
             echo "${{ secrets.LXC_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
             chmod 600 ~/.ssh/id_ed25519
       - name: Run Create Container Script
-        env:
-          CONTAINER_NAME: pr-test
-          CONTAINER_PASSWORD: mie123!!
-          PROXMOX_USERNAME: mklema
-          PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
-          HTTP_PORT: 80
         run: |
           echo "PROXMOX_USERNAME: $PROXMOX_USERNAME"
           ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
