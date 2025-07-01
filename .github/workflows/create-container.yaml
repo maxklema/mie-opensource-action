@@ -2,12 +2,15 @@ name: Deploy PR to LXC Container
 
 # For now, only run when a PR is created or re-opened.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened]
 
 jobs:
   create-container:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
     env:
       CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
       CONTAINER_PASSWORD: L3arNAtM1E!
@@ -20,13 +23,13 @@ jobs:
             mkdir -p ~/.ssh
             echo "${{ secrets.LXC_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
             chmod 600 ~/.ssh/id_ed25519
-      - name: Run Create Container Script
-        run: |
-          echo "PROXMOX_USERNAME: $PROXMOX_USERNAME"
-          ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
-          ssh -t -i ~/.ssh/id_ed25519 \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
-            create-container@opensource.mieweb.org
+      # - name: Run Create Container Script
+      #   run: |
+      #     echo "PROXMOX_USERNAME: $PROXMOX_USERNAME"
+      #     ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
+      #     ssh -t -i ~/.ssh/id_ed25519 \
+      #       -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
+      #       create-container@opensource.mieweb.org
       - name: Comment Container Details in PR
         uses: actions/github-script@v7
         with:
