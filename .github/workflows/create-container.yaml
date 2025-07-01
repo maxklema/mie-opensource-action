@@ -36,6 +36,8 @@ jobs:
           echo "$OUTPUT" | grep '^🌐  Internal IP         : ' | sed 's/🌐  Internal IP         ://' | xargs -I{} echo "INTERNAL_IP={}" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | grep '^🔗  Domain Name         : ' | sed 's/🔗  Domain Name         ://' | xargs -I{} echo "DOMAIN_NAME={}" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | grep '^🛠️  SSH Access          : ' | sed 's/🛠️  SSH Access          ://' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
+          echo "DOMAIN NAME: ${{ steps.create-lxc.outputs.DOMAIN_NAME }}"
+          echo "SSH COMMAND: ${{ steps.create-lxc.outputs.SSH_COMMAND }}"
       - name: Comment Container Details in PR
         uses: actions/github-script@v7
         with:
