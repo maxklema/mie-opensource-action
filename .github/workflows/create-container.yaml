@@ -35,6 +35,7 @@ jobs:
           export PROXMOX_USERNAME
           export PROXMOX_PASSWORD
           export HTTP_PORT
-          ssh -i ~/.ssh/id_ed25519 \
+          ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
+          ssh -t -i ~/.ssh/id_ed25519 \
             -o SendEnv="CONTAINER_NAME, CONTAINER_PASSWORD, PROXMOX_USERNAME, PROXMOX_PASSWORD, HTTP_PORT" \
             create-container@opensource.mieweb.org
