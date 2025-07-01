@@ -2,15 +2,16 @@ name: Deploy PR to LXC Container
 
 # For now, only run when a PR is created or re-opened.
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+  issues: write
 
 jobs:
   create-container:
     runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write
-      issues: write
     env:
       CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
       CONTAINER_PASSWORD: L3arNAtM1E!
