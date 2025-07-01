@@ -19,7 +19,7 @@ jobs:
           HTTP_PORT: 80
       - name: Add SSH Private Key
         run: |
-            mkdir -p ~/.SSH
+            mkdir -p ~/.ssh
             echo "${{ secrets.LXC_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
             chmod 600 ~/.ssh/id_ed25519
       - name: Run Create Container Script
