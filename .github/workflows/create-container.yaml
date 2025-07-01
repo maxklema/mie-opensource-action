@@ -37,7 +37,7 @@ jobs:
           echo "$OUTPUT" | grep '^🔗  Domain Name         : ' | sed 's/🔗  Domain Name         ://' | xargs -I{} echo "DOMAIN_NAME={}" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | grep '^🛠️  SSH Access          : ' | sed 's/🛠️  SSH Access          ://' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
           echo "DOMAIN: "
-          echo "$OUTPUT" | grep '^🔗  Domain Name         : ' | sed 's/🔗  Domain Name         ://'
+          echo "$OUTPUT"
       - name: Comment Container Details in PR
         uses: actions/github-script@v7
         with:
