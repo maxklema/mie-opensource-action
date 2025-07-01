@@ -1,0 +1,40 @@
+name: Deploy PR to LXC Container
+
+# For now, only run when a PR is created or re-opened.
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Enviornment Variables
+        run: echo "Enviornment variables set"
+        env:
+          CONTAINER_NAME: pr-test
+          CONTAINER_PASSWORD: mie123!!
+          PROXMOX_USERNAME: mklema
+          PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+          HTTP_PORT: 80
+      - name: Add SSH Private Key
+        run: |
+            mkdir -p ~/.SSH
+            echo "${{ secrets.LXC_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+            chmod 600 ~/.ssh/id_ed25519
+      - name: Run Create Container Script
+        env:
+          CONTAINER_NAME: pr-test
+          CONTAINER_PASSWORD: mie123!!
+          PROXMOX_USERNAME: mklema
+          PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+          HTTP_PORT: 80
+        run: |
+          export CONTAINER_NAME
+          export CONTAINER_PASSWORD
+          export PROXMOX_USERNAME
+          export PROXMOX_PASSWORD
+          export HTTP_PORT
+          ssh -i ~/.ssh/id_ed25519 \
+            -o SendEnv="CONTAINER_NAME, CONTAINER_PASSWORD, PROXMOX_USERNAME, PROXMOX_PASSWORD, HTTP_PORT" \
+            create-container@opensource.mieweb.org
