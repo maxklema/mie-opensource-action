@@ -24,7 +24,7 @@ jobs:
             mkdir -p ~/.ssh
             echo "${{ secrets.LXC_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
             chmod 600 ~/.ssh/id_ed25519
-            
+
       - name: Run Create Container Script
         id: create-lxc
         run: |
@@ -57,5 +57,5 @@ jobs:
           INTERNAL_IP: ${{ steps.create-lxc.outputs.INTERNAL_IP }}
           CONTAINER_ID: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
         run: |
-          node .github/scripts/writePRComment.js
+          node .github/scripts/writePrComment.js
 
