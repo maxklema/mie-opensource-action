@@ -33,7 +33,6 @@ jobs:
             create-container@opensource.mieweb.org)
           STATUS=$?
           echo "STATUS CODE: $STATUS"
-          exit $STATUS
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🔗  Domain Name         : " | sed 's/🔗  Domain Name         : //' | xargs -I{} echo "DOMAIN_NAME={}" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🌐  Internal IP         : " | sed 's/🌐  Internal IP         : //' | xargs -I{} echo "INTERNAL_IP={}" >> $GITHUB_OUTPUT
@@ -51,10 +50,10 @@ jobs:
 
               Congratulations! This PR has been deployed to a live container on MIE's Proxmox Cluster.
 
-              🔗 **Domain**: {{ steps.create-lxc.outputs.DOMAIN_NAME }}
-              🛠️ **SSH Access**: {{ steps.create-lxc.outputs.SSH_COMMAND }}
-              🌐 **Internal IP**: {{ steps.create-lxc.outputs.INTERNAL_IP }}
-              📦 **Container ID**: {{ steps.create-lxc.outputs.CONTAINER_ID }}
+              🔗 **Domain**: ${{ steps.create-lxc.outputs.DOMAIN_NAME }}
+              🛠️ **SSH Access**: ${{ steps.create-lxc.outputs.SSH_COMMAND }}
+              🌐 **Internal IP**: ${{ steps.create-lxc.outputs.INTERNAL_IP }}
+              📦 **Container ID**: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
 
               > To view container metrics, visit [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006)
               <small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
