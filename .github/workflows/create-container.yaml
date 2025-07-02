@@ -29,6 +29,8 @@ jobs:
         id: create-lxc
         continue-on-error: true
         run: |
+          # continue if an exit code error in remote container creation script
+          set +e
           ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
           OUTPUT=$(ssh -i ~/.ssh/id_ed25519 \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
@@ -59,4 +61,8 @@ jobs:
           CONTAINER_ID: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
         run: |
           node .github/scripts/writePrComment.js
+
+      - name: Exit STATUS
+        run: |
+          exit ${{ steps.create-lxc.outputs.EXIT_STATUS }}
 
