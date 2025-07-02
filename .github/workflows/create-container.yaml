@@ -27,9 +27,8 @@ jobs:
       - name: Run Create Container Script
         id: create-lxc
         run: |
-          echo "PROXMOX_USERNAME: $PROXMOX_USERNAME"
           ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
-          OUTPUT=$(ssh -t -i ~/.ssh/id_ed25519 \
+          OUTPUT=$(ssh -i ~/.ssh/id_ed25519 \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
             create-container@opensource.mieweb.org)
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
@@ -45,19 +44,17 @@ jobs:
             const owner = context.repo.owner;
             const prNum = context.payload.pull_request.number;
             const comment = `
-             **Container Deployed for this PR**
+              🚀 **Container Deployed for this PR**
 
-            Congratulations! This PR has been deployed to a live container on MIE's Proxmox Cluster.
+              Congratulations! This PR has been deployed to a live container on MIE's Proxmox Cluster.
 
-            🔗 **Domain**: ${{ steps.create-lxc.outputs.DOMAIN_NAME }} <br>
-            🛠️ **SSH Access**: ${{ steps.create-lxc.outputs.SSH_COMMAND }} <br>
-            🌐 **Internal IP**: ${{ steps.create-lxc.outputs.INTERNAL_IP }} <br>
-            📦 **Container ID**: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
+              🔗 **Domain**: https://pr-mie-opensource-action-16.opensource.mieweb.org
+              🛠️ **SSH Access**: ssh -p 2259 root@pr-mie-opensource-action-16.opensource.mieweb.org
+              🌐 **Internal IP**: 10.15.73.194
+              📦 **Container ID**: 119
 
-            To view container metrics, visit [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006)
-
-            <small>-----------------------------------------------------------------------------------------------------------------</small> <br>
-            <small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
+              > To view container metrics, visit [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006)
+              <small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
             `;
             await github.rest.issues.createComment({
               owner: owner,
