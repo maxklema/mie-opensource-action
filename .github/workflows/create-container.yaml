@@ -32,6 +32,7 @@ jobs:
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
             create-container@opensource.mieweb.org)
           STATUS=$?
+          echo "STATUS CODE: $STATUS"
           exit $STATUS
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🔗  Domain Name         : " | sed 's/🔗  Domain Name         : //' | xargs -I{} echo "DOMAIN_NAME={}" >> $GITHUB_OUTPUT
