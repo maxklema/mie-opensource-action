@@ -39,8 +39,8 @@ jobs:
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "📦  Container ID        : " | sed 's/📦  Container ID        : //' | xargs -I{} echo "CONTAINER_ID={}" >> $GITHUB_OUTPUT
       - name: Installing Octokit
       - uses: actions/checkout@v4
-          run: npm install @octokit/rest 
-          working-directory: .github/scripts
+        run: npm install @octokit/rest 
+        working-directory: .github/scripts
       - name: Comment Container Details in PR
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
