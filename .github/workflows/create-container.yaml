@@ -27,6 +27,7 @@ jobs:
 
       - name: Run Create Container Script
         id: create-lxc
+        continue-on-error: true
         run: |
           ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
           OUTPUT=$(ssh -i ~/.ssh/id_ed25519 \
