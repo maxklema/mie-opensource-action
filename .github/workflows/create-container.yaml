@@ -53,7 +53,7 @@ jobs:
           INTERNAL_IP: ${{ steps.create-lxc.outputs.INTERNAL_IP }}
           CONTAINER_ID: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
         run: |
-          node .github/scripts/writePrComment.js
+          node .github/scripts/writePrComment.mjs
 
       - name: Exit STATUS
         run: |
