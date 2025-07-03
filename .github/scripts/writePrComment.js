@@ -21,18 +21,18 @@ let failReason = "";
 switch (EXIT_STATUS) {
     case "0":
         comment = `
-            🚀 **Container Deployed for this PR**
+🚀 **Container Deployed for this PR**
 
-            Congratulations! This PR has been deployed to a live container on MIE's Proxmox Cluster.
+Congratulations! This PR has been deployed to a live container on MIE's Proxmox Cluster.
 
-            🔗 **Domain**: ${DOMAIN_NAME}
-            🛠️ **SSH Access**: ${SSH_COMMAND}
-            🌐 **Internal IP**: ${INTERNAL_IP}
-            📦 **Container ID**: ${CONTAINER_ID}
+🔗 **Domain**: ${DOMAIN_NAME}
+🛠️ **SSH Access**: ${SSH_COMMAND}
+🌐 **Internal IP**: ${INTERNAL_IP}
+📦 **Container ID**: ${CONTAINER_ID}
 
-            > To view container metrics, visit [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006)
-            <small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
-            `;
+> To view container metrics, visit [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006)
+<small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
+`;
         break;
     case "2":
         failReason = `Invalid Proxmox Credentials. Make sure you specify the correct proxmox username and password.`;
@@ -53,13 +53,13 @@ switch (EXIT_STATUS) {
 
 if (EXIT_STATUS !== "0") {
     comment = `
-    ❌ **Error: Container Deployed for this PR**
+❌ **Error: Container Deployed for this PR**
 
-    Unfortunately, a container could not be created for this PR.
+Unfortunately, a container could not be created for this PR.
 
-    **Reason**: ${failReason} Update your credentials and re-run the job.
+**Reason**: ${failReason} Update your credentials and re-run the job.
 
-    > <small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
+> <small>Note: Future commits to this PR will **<u>not be automatically</u>** updated on the container. This must be done manually.</small>
     `;
 }
 
