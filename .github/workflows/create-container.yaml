@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   create-container:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     env:
       CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
       CONTAINER_PASSWORD: L3arNAtM1E!
@@ -19,22 +19,15 @@ jobs:
       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
       HTTP_PORT: 80
     steps:
-      - name: Add SSH Private Key
-        run: |
-            mkdir -p ~/.ssh
-            echo "${{ secrets.LXC_SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-            chmod 600 ~/.ssh/id_ed25519
-
       - name: Run Create Container Script
         id: create-lxc
         continue-on-error: true
         run: |
           # continue if an exit code error in remote container creation script
           set +e
-          ssh-keyscan opensource.mieweb.org >> ~/.ssh/known_hosts
           OUTPUT=$(ssh -i ~/.ssh/id_ed25519 \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
-            create-container@opensource.mieweb.org)
+            create-container@10.15.0.4)
           STATUS=$?
           echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
