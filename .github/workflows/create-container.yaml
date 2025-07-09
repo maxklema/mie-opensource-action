@@ -25,6 +25,7 @@ jobs:
         run: |
           # continue if an exit code error in remote container creation script
           set +e
+
           OUTPUT=$(ssh -i ~/.ssh/id_rsa \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
             create-container@10.15.0.4)
