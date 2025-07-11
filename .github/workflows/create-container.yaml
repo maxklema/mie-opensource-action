@@ -23,7 +23,7 @@ jobs:
       PROJECT_ROOT: .
       PROJECT_BRANCH: main
       REQUIRE_ENV_VARS: y
-      CONTAINER_ENV_VARS: {"API_KEY": "1234"}
+      CONTAINER_ENV_VARS: '{"API_KEY": "1234"}'
       INSTALL_COMMAND: npm i
       START_COMMAND: npm start
       RUNTIME_LANGUAGE: nodejs
