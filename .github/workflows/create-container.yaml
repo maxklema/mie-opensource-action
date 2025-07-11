@@ -38,7 +38,8 @@ jobs:
 
           OUTPUT=$(ssh -i ~/.ssh/id_rsa \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES" \
-            create-container@10.15.0.4)
+            create-container@10.15.0.4 | tee /dev/tty)
+            
           STATUS=$?
           echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
