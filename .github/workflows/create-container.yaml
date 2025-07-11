@@ -36,9 +36,15 @@ jobs:
           # continue if an exit code error in remote container creation script
           set +e
 
+          TMP_OUTPUT=$(mktemp)
           ssh -i ~/.ssh/id_rsa \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD ..." \
-            create-container@10.15.0.4 
+            create-container@10.15.0.4 | tee "$TMP_OUTPUT"
+          
+          # Later, read the output into a variable if needed
+          OUTPUT=$(cat "$TMP_OUTPUT")
+          rm "$TMP_OUTPUT"
+
    
           STATUS=$?
           echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
