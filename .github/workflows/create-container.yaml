@@ -13,7 +13,7 @@ jobs:
   create-container:
     runs-on: self-hosted
     env:
-      CONTAINER_NAME: "flask-api-2"
+      CONTAINER_NAME: "pr-${{ github.repository }}-${{ github.event.pull_request.number }}"
       CONTAINER_PASSWORD: "maxklema"
       PROXMOX_USERNAME: "mklema"
       PROXMOX_PASSWORD: "${{ secrets.PROXMOX_PASSWORD }}"
@@ -41,7 +41,7 @@ jobs:
           set +e
 
           OUTPUT=$(ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
+            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES" \
             create-container@10.15.0.4)
           STATUS=$?
           echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
