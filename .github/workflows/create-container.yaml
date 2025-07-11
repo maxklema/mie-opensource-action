@@ -14,10 +14,20 @@ jobs:
     runs-on: self-hosted
     env:
       CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
-      CONTAINER_PASSWORD: L3arNAtM1E!
+      CONTAINER_PASSWORD: maxklema
       PROXMOX_USERNAME: mklema
       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
-      HTTP_PORT: 80
+      HTTP_PORT: 32000
+      DEPLOY_ON_START: y
+      PROJECT_REPOSITORY: https://github.com/maxklema/rankroom
+      REQUIRE_ENV_VARS: y
+      CONTAINER_ENV_VARS: '{"API_KEY": "1234"}'
+      INSTALL_COMMAND: npm i
+      START_COMMAND: npm start
+      RUNTIME_LANGUAGE: nodejs
+      REQUIRE_SERVICES: y
+      SERVICES: '["mongodb"]'
+
     steps:
       - name: Run Create Container Script
         id: create-lxc
@@ -25,9 +35,17 @@ jobs:
         run: |
           # continue if an exit code error in remote container creation script
           set +e
+
+          TMP_OUTPUT=$(mktemp)
           ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
-            create-container@10.15.0.4
+            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES" \
+            create-container@10.15.0.4 | tee "$TMP_OUTPUT"
+          
+          # Later, read the output into a variable if needed
+          OUTPUT=$(cat "$TMP_OUTPUT")
+          rm "$TMP_OUTPUT"
+
+   
           STATUS=$?
           echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
@@ -58,4 +76,3 @@ jobs:
       - name: Exit STATUS
         run: |
           exit ${{ steps.create-lxc.outputs.EXIT_STATUS }}
-
