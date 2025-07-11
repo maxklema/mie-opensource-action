@@ -13,25 +13,23 @@ jobs:
   create-container:
     runs-on: self-hosted
     env:
-      CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
-      CONTAINER_PASSWORD: maxklema
-      PROXMOX_USERNAME: mklema
-      PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
-      HTTP_PORT: 32000
-      CONTAINER_NAME="flask-api-2"
-      CONTAINER_PASSWORD="maxklema"
-      HTTP_PORT=32000
-      DEPLOY_ON_START="y"
-      PROJECT_REPOSITORY="https://github.com/maxklema/rankroom"
-      PROJECT_ROOT="."
-      PROJECT_BRANCH="main"
-      REQUIRE_ENV_VARS="y"
-      CONTAINER_ENV_VARS="{"API_KEY": "1234"}"
-      INSTALL_COMMAND="npm i"
-      START_COMMAND="npm start"
-      RUNTIME_LANGUAGE="nodejs"
-      REQUIRE_SERVICES="y"
-      SERVICES="["mongodb"]"
+      CONTAINER_NAME: "flask-api-2"
+      CONTAINER_PASSWORD: "maxklema"
+      PROXMOX_USERNAME: "mklema"
+      PROXMOX_PASSWORD: "${{ secrets.PROXMOX_PASSWORD }}"
+      HTTP_PORT: "32000"
+      DEPLOY_ON_START: "y"
+      PROJECT_REPOSITORY: "https://github.com/maxklema/rankroom"
+      PROJECT_ROOT: "."
+      PROJECT_BRANCH: "main"
+      REQUIRE_ENV_VARS: "y"
+      CONTAINER_ENV_VARS: '{"API_KEY": "1234"}'
+      INSTALL_COMMAND: "npm i"
+      START_COMMAND: "npm start"
+      RUNTIME_LANGUAGE: "nodejs"
+      REQUIRE_SERVICES: "y"
+      SERVICES: '["mongodb"]'
+
 
 
     steps:
