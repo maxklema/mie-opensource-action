@@ -20,7 +20,6 @@ jobs:
       HTTP_PORT: 32000
       DEPLOY_ON_START: y
       PROJECT_REPOSITORY: https://github.com/maxklema/rankroom
-      PROJECT_ROOT: .
       PROJECT_BRANCH: main
       REQUIRE_ENV_VARS: y
       CONTAINER_ENV_VARS: '{"API_KEY": "1234"}'
