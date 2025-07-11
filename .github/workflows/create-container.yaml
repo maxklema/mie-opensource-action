@@ -28,7 +28,7 @@ jobs:
       START_COMMAND: npm start
       RUNTIME_LANGUAGE: nodejs
       REQUIRE_SERVICES: y
-      SERVICES: ["mongodb"]
+      SERVICES: '["mongodb"]'
 
     steps:
       - name: Run Create Container Script
