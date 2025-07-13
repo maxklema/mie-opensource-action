@@ -9,11 +9,11 @@ ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAM
 CONTAINER_EXISTS=$?
 if [ $CONTAINER_EXISTS -eq 0 ] || [ $CONTAINER_EXISTS -eq 2 ] ; then
     echo "Container \"$CONTAINER_NAME\" already found with this name. Cannot create container on this branch."
-    if [ ! ${{ github.event_name }} == 'push' ]; then
+    if [ ! $GITHUB_EVENT == 'push' ]; then
         exit 1
     fi
 elif [ $CONTAINER_EXISTS -eq 1 ]; then
-    echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on ${{ github.ref_name }}"
+    echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on $PROJECT_BRANCH branch."
     
     # continue if an exit code error in remote container creation script
     set +e
