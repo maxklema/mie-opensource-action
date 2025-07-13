@@ -33,12 +33,12 @@ jobs:
       RUNTIME_LANGUAGE: nodejs
       REQUIRE_SERVICES: y
       SERVICES: '["mongodb"]'
-    
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      
 
     steps:
+     - name: Checkout Code
+       uses: actions/checkout@v4
+
      - name: Container Creation for Branch (If Needed)
        id: create-lxc
        if: github.event_name == 'create' || github.event_name == 'push'
