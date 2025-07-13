@@ -16,7 +16,7 @@ jobs:
   Manage-Container:
     runs-on: self-hosted
     env:
-      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.event }}-${{ github.ref_name }}
+      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.actor }}-${{ github.ref_name }}
       CONTAINER_PASSWORD: ${{ secrets.CONTAINER_PASSWORD }}
       PROXMOX_USERNAME: mklema
       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
@@ -42,7 +42,7 @@ jobs:
      - name: Container Creation for Branch (If Needed)
        id: create-lxc
        if: github.event_name == 'create' || github.event_name == 'push'
-       run: .github/lxc-creation-logic.sh
+       run: bash .github/lxc-creation-logic.sh
 
      - name: Container Update on Branch Push
        if: github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true'
