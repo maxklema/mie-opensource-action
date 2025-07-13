@@ -72,5 +72,5 @@ jobs:
        if: github.event_name == 'delete'
        run: |
           ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" delete-container@opensource.mieweb.org
+            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" delete-container@10.15.0.4
           exit $?
