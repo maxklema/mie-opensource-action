@@ -16,7 +16,7 @@ jobs:
   Manage-Container:
     runs-on: self-hosted
     env:
-      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.event.actor.login }}-${{ github.ref_name }}
+      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.event }}-${{ github.ref_name }}
       CONTAINER_PASSWORD: ${{ secrets.CONTAINER_PASSWORD }}
       PROXMOX_USERNAME: mklema
       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
@@ -35,33 +35,14 @@ jobs:
       SERVICES: '["mongodb"]'
     
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+    steps:
      - name: Container Creation for Branch (If Needed)
        id: create-lxc
        if: github.event_name == 'create' || github.event_name == 'push'
-       run: |
-        # check if container exists
-        set +e
-        ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
-        CONTAINER_EXISTS=$?
-        if [ $CONTAINER_EXISTS -eq 0 ] || [ $CONTAINER_EXISTS -eq 2 ] ; then
-          echo "Container \"$CONTAINER_NAME\" already found with this name. Cannot create container on this branch."
-        elif [ $CONTAINER_EXISTS -eq 1 ]; then
-          echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on ${{ github.ref_name }}"
-          
-          # continue if an exit code error in remote container creation script
-          set +e
-
-          TMP_OUTPUT=$(mktemp)
-          ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES" \
-            create-container@10.15.0.4 | tee "$TMP_OUTPUT"
-          
-          OUTPUT=$(cat "$TMP_OUTPUT")
-          rm "$TMP_OUTPUT"
-          echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
-
-          exit $?
-        fi
+       run: .github/lxc-creation-logic.sh
 
      - name: Container Update on Branch Push
        if: github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true'
