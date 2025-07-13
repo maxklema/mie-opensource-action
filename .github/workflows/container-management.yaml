@@ -16,7 +16,7 @@ jobs:
   Manage-Container:
     runs-on: self-hosted
     env:
-      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.repository_owner }}-${{ github.ref_name }}
+      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.event.actor.login }}-${{ github.ref_name }}
       CONTAINER_PASSWORD: ${{ secrets.CONTAINER_PASSWORD }}
       PROXMOX_USERNAME: mklema
       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
@@ -36,7 +36,8 @@ jobs:
     
     steps:
      - name: Container Creation for Branch (If Needed)
-       if: github.event_name == 'create'
+       id: create-lxc
+       if: github.event_name == 'create' || github.event_name == 'push'
        run: |
         # check if container exists
         ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
@@ -56,12 +57,13 @@ jobs:
           
           OUTPUT=$(cat "$TMP_OUTPUT")
           rm "$TMP_OUTPUT"
+          echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
+
           exit $?
         fi
 
-
      - name: Container Update on Branch Push
-       if: github.event_name == 'push'
+       if: github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true'
        run: |
           ssh -i ~/.ssh/id_rsa \
             -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE" \
