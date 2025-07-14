@@ -7,12 +7,6 @@ branding:
   color: 'purple'
 
 inputs:
-  container_password:
-    description: 'Password for your LXC Container'
-    required: true
-  proxmox_password:
-    description: 'Password for your MIE Proxmox Account'
-    required: true
   github_event_name:
     description: 'GitHub Event Name (create, push, delete)'
     required: true
@@ -25,6 +19,58 @@ inputs:
   github_ref_name:
     description: 'GitHub Ref Name (Branch Name)'
     required: true
+  proxmox_username:
+    description: 'Username for your MIE Proxmox Account'
+    required: true
+  proxmox_password:
+    description: 'Password for your MIE Proxmox Account'
+    required: true
+  container_password:
+    description: 'Password for your LXC Container'
+    required: true
+  public_key:
+    description: 'Public Key to be stored in your LXC Container'
+    required: false
+  http_port:
+    description: 'HTTP port your project will listen on.'
+    required: true
+  deploy_on_start:
+    description: 'Automatically deploy your project'
+    required: false
+  project_repository:
+    description: 'Link to your project repository'
+    required: false
+  project_root:
+    description: 'Root directory of project to deploy from'
+    required: false
+  require_env_vars:
+    description: 'Dictates if project requires environment variables'
+    required: false
+  container_env_vars:
+    description: 'Dictionary of key/value environment variable pairs'
+    required: false
+  install_command:
+    description: 'Command to install dependencies'
+    required: false
+  build_command:
+    description: 'Command to build project'
+    required: false
+  start_command:
+    description: 'Command to start project'
+    required: false
+  runtime_language:
+    description: 'underlying runtime environment'
+    required: false
+  require_services:
+    description: 'Dictates if proejct requires special services'
+    required: false
+  services:
+    description: 'Array of valid services to install on container that are listed on the master service list.'
+    required: false
+  custom_services:
+    description: '2D Array of custom services and installation commands that are not listed in the master service list'
+    required: false
+
 
 runs:
   using: "composite"
@@ -38,21 +84,23 @@ runs:
         GITHUB_EVENT: ${{ inputs.github_event_name }}
         CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
-        PROXMOX_USERNAME: mklema
+        PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        HTTP_PORT: 32000
-        DEPLOY_ON_START: y
-        PROJECT_REPOSITORY: https://github.com/maxklema/rankroom
+        PUBLIC_KEY: ${{ inputs.public_key }}
+        HTTP_PORT: ${{ inputs.http_port }}
+        DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
+        PROJECT_REPOSITORY: ${{ inputs.project_repository }}
         PROJECT_BRANCH: ${{ inputs.github_ref_name }}
-        PROJECT_ROOT:
-        REQUIRE_ENV_VARS: y
-        CONTAINER_ENV_VARS: '{"API_KEY": "1234"}'
-        INSTALL_COMMAND: npm i
-        START_COMMAND: npm start
-        BUILD_COMMAND:
-        RUNTIME_LANGUAGE: nodejs
-        REQUIRE_SERVICES: y
-        SERVICES: '["mongodb"]'
+        PROJECT_ROOT: ${{ inputs.project_root }}
+        REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
+        CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
+        INSTALL_COMMAND: ${{ inputs.install_command }}
+        START_COMMAND: ${{ inputs.start_command }}
+        BUILD_COMMAND:  ${{ inputs.build_command }}
+        RUNTIME_LANGUAGE: ${{ inputs.runtime_language }}
+        REQUIRE_SERVICES: ${{ inputs.require_services }}
+        SERVICES: ${{ inputs.services }}
+        CUSTOM_SERVICES: ${{ inputs.custom_services }}
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: bash .github/lxc-creation-logic.sh
 
