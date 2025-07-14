@@ -103,7 +103,7 @@ runs:
         SERVICES: ${{ inputs.services }}
         CUSTOM_SERVICES: ${{ inputs.custom_services }}
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
-      run: bash .github/lxc-creation-logic.sh
+      run: ls -lr && bash .github/lxc-creation-logic.sh
 
     - name: Container Update on Branch Push
       shell: bash
