@@ -16,7 +16,7 @@ jobs:
   Manage-Container:
     runs-on: self-hosted
     env:
-      CONTAINER_NAME: ${{ github.event.repository.name }}--${{ env.GITHUB_REPOSITORY_OWNER }}-${{ github.repository_owner }}-${{ github.ref_name }}
+      CONTAINER_NAME: ${{ github.event.repository.name }}-${{ github.repository_owner }}-${{ github.ref_name }}
       CONTAINER_PASSWORD: ${{ secrets.CONTAINER_PASSWORD }}
       PROXMOX_USERNAME: mklema
       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
