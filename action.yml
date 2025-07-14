@@ -77,6 +77,27 @@ outputs:
 
 runs:
   using: "composite"
+  env:
+    GITHUB_EVENT: ${{ inputs.github_event_name }}
+    CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
+    CONTAINER_PASSWORD: ${{ inputs.container_password }}
+    PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
+    PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
+    PUBLIC_KEY: ${{ inputs.public_key }}
+    HTTP_PORT: ${{ inputs.http_port }}
+    DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
+    PROJECT_REPOSITORY: ${{ inputs.project_repository }}
+    PROJECT_BRANCH: ${{ inputs.github_ref_name }}
+    PROJECT_ROOT: ${{ inputs.project_root }}
+    REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
+    CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
+    INSTALL_COMMAND: ${{ inputs.install_command }}
+    START_COMMAND: ${{ inputs.start_command }}
+    BUILD_COMMAND:  ${{ inputs.build_command }}
+    RUNTIME_LANGUAGE: ${{ inputs.runtime_language }}
+    REQUIRE_SERVICES: ${{ inputs.require_services }}
+    SERVICES: ${{ inputs.services }}
+    CUSTOM_SERVICES: ${{ inputs.custom_services }}
   steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -84,27 +105,6 @@ runs:
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
-      env:
-        GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
-        CONTAINER_PASSWORD: ${{ inputs.container_password }}
-        PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
-        PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PUBLIC_KEY: ${{ inputs.public_key }}
-        HTTP_PORT: ${{ inputs.http_port }}
-        DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
-        PROJECT_REPOSITORY: ${{ inputs.project_repository }}
-        PROJECT_BRANCH: ${{ inputs.github_ref_name }}
-        PROJECT_ROOT: ${{ inputs.project_root }}
-        REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
-        CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
-        INSTALL_COMMAND: ${{ inputs.install_command }}
-        START_COMMAND: ${{ inputs.start_command }}
-        BUILD_COMMAND:  ${{ inputs.build_command }}
-        RUNTIME_LANGUAGE: ${{ inputs.runtime_language }}
-        REQUIRE_SERVICES: ${{ inputs.require_services }}
-        SERVICES: ${{ inputs.services }}
-        CUSTOM_SERVICES: ${{ inputs.custom_services }}
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: |
 
