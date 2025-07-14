@@ -76,7 +76,6 @@ runs:
   using: "composite"
   steps:
     - name: Checkout Code
-      shell: bash
       uses: actions/checkout@v4
 
     - name: Container Creation for Branch (If Needed)
