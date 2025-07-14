@@ -13,7 +13,7 @@ inputs:
   github_repository:
     description: 'GitHub Repository (owner/repo)'
     required: true
-  repository_owner:
+  github_repository_owner:
     description: 'GitHub Repository Owner'
     required: true
   github_ref_name:
@@ -70,7 +70,7 @@ inputs:
   custom_services:
     description: '2D Array of custom services and installation commands that are not listed in the master service list'
     required: false
-
+    
 runs:
   using: "composite"
   steps:
@@ -82,7 +82,7 @@ runs:
       shell: bash
       env:
         GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.repository_owner }}-${{ inputs.github_ref_name }}
+        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
