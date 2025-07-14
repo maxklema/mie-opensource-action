@@ -3,7 +3,7 @@ name: MIE LaunchPad
 description: Manage Proxmox MIE Containers for your Repository.
 author: maxklema
 branding:
-  icon: 'rocket'
+  icon: 'package'
   color: 'purple'
 
 inputs:
