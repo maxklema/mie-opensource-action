@@ -76,10 +76,12 @@ runs:
   using: "composite"
   steps:
     - name: Checkout Code
+      shell: bash
       uses: actions/checkout@v4
 
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
+      shell: bash
       env:
         GITHUB_EVENT: ${{ inputs.github_event_name }}
         CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
@@ -105,6 +107,7 @@ runs:
       run: bash .github/lxc-creation-logic.sh
 
     - name: Container Update on Branch Push
+      shell: bash
       if: ${{ inputs.github_event_name == 'push' }}
       run: |
         ssh -i ~/.ssh/id_rsa \
@@ -113,6 +116,7 @@ runs:
         exit $?
 
     - name: Container Deletion on Branch Deletion (Check)
+      shell: bash
       if: ${{ inputs.github_event_name == 'delete' }}
       run: |
         ssh -i ~/.ssh/id_rsa \
