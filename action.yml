@@ -76,6 +76,7 @@ runs:
   steps:
 
     - name: Git Ref basename
+      shell: bash
       id: ref-basename
       run: |
         BRANCH=$(basename ${{ inputs.github_ref_name}} )
