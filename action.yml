@@ -82,7 +82,7 @@ runs:
       shell: bash
       env:
         GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
+        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ basename inputs.github_ref_name }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
@@ -90,7 +90,7 @@ runs:
         HTTP_PORT: ${{ inputs.http_port }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
         PROJECT_REPOSITORY: ${{ inputs.project_repository }}
-        PROJECT_BRANCH: ${{ inputs.github_ref_name }}
+        PROJECT_BRANCH: ${{ basename inputs.github_ref_name }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
         CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
@@ -130,11 +130,11 @@ runs:
       shell: bash
       env:
         GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
+        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ basename inputs.github_ref_name }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PROJECT_REPOSITORY: ${{ inputs.project_repository }}
-        PROJECT_BRANCH: ${{ inputs.github_ref_name }}
+        PROJECT_BRANCH: ${{ basename inputs.github_ref_name }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
         START_COMMAND: ${{ inputs.start_command }}
@@ -151,7 +151,7 @@ runs:
       shell: bash
       env:
         GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ inputs.github_ref_name }}
+        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ basename inputs.github_ref_name }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
       if: ${{ inputs.github_event_name == 'delete' }}
