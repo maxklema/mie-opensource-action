@@ -71,6 +71,9 @@ inputs:
     description: '2D Array of custom services and installation commands that are not listed in the master service list'
     required: false
 
+outputs:
+  CONTAINER_CREATED:
+    value: ${{ steps.create-lxc.outputs.CONTAINER_CREATED }}
 
 runs:
   using: "composite"
@@ -119,15 +122,11 @@ runs:
             # continue if an exit code error in remote container creation script
             set +e
 
-            TMP_OUTPUT=$(mktemp)
             ssh -i ~/.ssh/id_rsa \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES" \
-            create-container@10.15.0.4 | tee "$TMP_OUTPUT"
+            create-container@10.15.0.4 
             
-            OUTPUT=$(cat "$TMP_OUTPUT")
-            rm "$TMP_OUTPUT"
             echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
-
             exit $?
         fi
 
