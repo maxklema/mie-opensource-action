@@ -119,6 +119,7 @@ runs:
       run: |
 
         set +e
+        echo "Running Container Exists..."
         ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
         CONTAINER_EXISTS=$?
         if [ $CONTAINER_EXISTS -eq 0 ] || [ $CONTAINER_EXISTS -eq 2 ] ; then
