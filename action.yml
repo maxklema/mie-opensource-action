@@ -70,6 +70,12 @@ inputs:
   custom_services:
     description: '2D Array of custom services and installation commands that are not listed in the master service list'
     required: false
+  linux_distribution:
+    description: 'Rocky or Debian'
+    required: true
+  multi_component:
+    required: false
+  
     
 runs:
   using: "composite"
@@ -107,6 +113,8 @@ runs:
         REQUIRE_SERVICES: ${{ inputs.require_services }}
         SERVICES: ${{ inputs.services }}
         CUSTOM_SERVICES: ${{ inputs.custom_services }}
+        LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
+        MULTI_COMPONENT: ${{ inputs.multi_component }}
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: |
 
@@ -125,7 +133,7 @@ runs:
             set +e
 
             ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES" \
+            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT" \
             create-container@10.15.0.4 
             
             echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
