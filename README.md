@@ -5,7 +5,47 @@ This GitHub action utilizes MIE's open source cluster to manage LXC containers d
 > **Note**: This project is new and is in a early version. There are likely bugs. If you encounter any, please create an issue.
 
 ## Table of Contents
+1. [Mermaid Diagram](#mermaid-diagram)
+2. [Prerequisites](#prerequisites)
+3. [Getting Started](#getting-started)
+    - [Workflow Job](#workflow-job)
+    - [Self-Hosted Runner](#self-hosted-runner)
+4. [Configurations](#configurations)
+    - [Basic Properties](#basic-properties)
+    - [Automatic Deployment Properties](#automatic-deployment-properties)
+5. [Important Notes for Automatic Deployment](#important-notes-for-automatic-deployment)
+6. [Output](#output)
+7. [Sample Workflow File ](#sample-workflow-file)
+8. [Misc.](#misc)
 
+## Mermaid Diagram
+
+The mermaid diagram below describes the sequence of events executed by this Github Action:\
+
+```mermaid
+---
+config:
+  layout: dagre
+---
+flowchart LR
+    A["Start: Prerequisites"] --> B["Add Workflow File to Repo"]
+    B --> C["Configure Trigger Events (Push, Create, Delete)"]
+    C --> D["Set Up Workflow Job"]
+    D --> E["Configure Required Properties"]
+    E --> F{"deploy_on_start = y?"}
+    F -- Yes --> G["Configure Automatic Deployment Properties"]
+    F -- No --> H["Proceed with Basic Container Creation"]
+    G --> I{"Single or Multi-Component?"}
+    I -- Single --> J["Set Single Component Properties"]
+    I -- Multi --> K["Set Multi-Component Properties"]
+    J --> L["Run Workflow"]
+    K --> L
+    H --> L
+    L --> M["Container Created/Updated/Deleted"]
+    M --> N["Output Container Details"]
+    N --> O["End"]
+
+```
 
 ## Prerequisites
 - Valid Proxmox Account at [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006).
@@ -145,8 +185,48 @@ See an example output below:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+## Sample Workflow File
 
+The workflow file below is an example workflow designed to deploy a multi-component application with a python (flask) backend and nodejs (vite) frontend:
 
+```yaml
+# .github/workflows/proxmox.yml
+name: Proxmox Container Management
+
+on:
+  push:
+    branches: ["**"]
+  create:
+  delete:
+
+jobs:
+  manage-container:
+    runs-on: self-hosted
+    if: github.event_name != 'push' || github.event.created == false
+    steps:
+      - uses: maxklema/mie-opensource-action@main
+        with:
+          github_event_name: ${{ github.event_name }}
+          github_repository: ${{ github.event.repository.name }}
+          github_repository_owner: ${{ github.repository_owner }}
+          github_ref_name: ${{ github.event.ref }}
+          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
+          proxmox_username: maxklema
+          container_password: ${{ secrets.CONTAINER_PASSWORD }}
+          http_port: 32000
+          public_key: ${{ secrets.PUBLIC_KEY }}
+          deploy_on_start: y
+          require_env_vars: y
+          container_env_vars: '{"frontend": { "api_key": "123"}, "backend": { "password": "abc123" }}'
+          install_command: '{"frontend": "npm i", "backend": "pip install -r ../requirements.txt"}'
+          build_command:
+          start_command: '{"frontend": "npm run dev", "backend": "FLASK_ENV=development flask run"}'
+          runtime_language: '{"frontend": "nodejs", "backend": "python"}'
+          require_services: y
+          services: '["mongodb", "docker"]'
+          linux_distribution: debian
+          multi_component: y
+```
 
 ## Misc.
 Feel free to submit a PR/issue here or in [opensource-server](https://github.com/mieweb/opensource-server).
