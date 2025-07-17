@@ -1,7 +1,6 @@
 # action.yml
 name: MIE LaunchPad
-description: This GitHub action utilizes MIE's open source cluster to manage LXC containers derived from your GitHub repository source code.
-
+description: Manage Proxmox MIE Containers for your Repository.
 author: maxklema
 branding:
   icon: 'package'
@@ -37,9 +36,6 @@ inputs:
     required: true
   deploy_on_start:
     description: 'Automatically deploy your project'
-    required: false
-  project_repository:
-    description: 'Link to your project repository'
     required: false
   project_root:
     description: 'Root directory of project to deploy from'
@@ -104,7 +100,7 @@ runs:
         PUBLIC_KEY: ${{ inputs.public_key }}
         HTTP_PORT: ${{ inputs.http_port }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
-        PROJECT_REPOSITORY: ${{ inputs.project_repository }}
+        PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.project_repository }}
         PROJECT_BRANCH: ${{ steps.ref-basename.outputs.BRANCH_NAME }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
@@ -152,7 +148,7 @@ runs:
         CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ steps.ref-basename.outputs.BRANCH_NAME }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PROJECT_REPOSITORY: ${{ inputs.project_repository }}
+        PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.project_repository }}
         PROJECT_BRANCH: ${{ steps.ref-basename.outputs.BRANCH_NAME }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
