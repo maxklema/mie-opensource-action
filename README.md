@@ -20,7 +20,7 @@ This GitHub action utilizes MIE's open source cluster to manage LXC containers d
 
 ## Mermaid Diagram
 
-The mermaid diagram below describes the sequence of events executed by this Github Action:\
+The mermaid diagram below describes the sequence of events executed by this Github Action.
 
 ```mermaid
 ---
