@@ -1,61 +1,61 @@
-name: Deploy PR to LXC Container
+# name: Deploy PR to LXC Container
 
-# For now, only run when a PR is created or re-opened.
-on:
-  pull_request:
-    types: [opened, reopened]
+# # For now, only run when a PR is created or re-opened.
+# on:
+#   pull_request:
+#     types: [opened, reopened]
 
-permissions:
-  pull-requests: write
-  issues: write
+# permissions:
+#   pull-requests: write
+#   issues: write
 
-jobs:
-  create-container:
-    runs-on: self-hosted
-    env:
-      CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
-      CONTAINER_PASSWORD: L3arNAtM1E!
-      PROXMOX_USERNAME: mklema
-      PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
-      HTTP_PORT: 80
-    steps:
-      - name: Run Create Container Script
-        id: create-lxc
-        continue-on-error: true
-        run: |
-          # continue if an exit code error in remote container creation script
-          set +e
-          ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
-            create-container@10.15.0.4
-          STATUS=$?
-          echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
-          echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
-          echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🔗  Domain Name         : " | sed 's/🔗  Domain Name         : //' | xargs -I{} echo "DOMAIN_NAME={}" >> $GITHUB_OUTPUT
-          echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🌐  Internal IP         : " | sed 's/🌐  Internal IP         : //' | xargs -I{} echo "INTERNAL_IP={}" >> $GITHUB_OUTPUT
-          echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "📦  Container ID        : " | sed 's/📦  Container ID        : //' | xargs -I{} echo "CONTAINER_ID={}" >> $GITHUB_OUTPUT
+# jobs:
+#   create-container:
+#     runs-on: self-hosted
+#     env:
+#       CONTAINER_NAME: pr-${{ github.event.repository.name }}-${{ github.event.pull_request.number }}
+#       CONTAINER_PASSWORD: L3arNAtM1E!
+#       PROXMOX_USERNAME: mklema
+#       PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
+#       HTTP_PORT: 80
+#     steps:
+#       - name: Run Create Container Script
+#         id: create-lxc
+#         continue-on-error: true
+#         run: |
+#           # continue if an exit code error in remote container creation script
+#           set +e
+#           ssh -i ~/.ssh/id_rsa \
+#             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT" \
+#             create-container@10.15.0.4
+#           STATUS=$?
+#           echo "EXIT_STATUS=$STATUS" >> $GITHUB_OUTPUT
+#           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🛠️  SSH Access          : " | sed 's/🛠️  SSH Access          : //' | xargs -I{} echo "SSH_COMMAND={}" >> $GITHUB_OUTPUT
+#           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🔗  Domain Name         : " | sed 's/🔗  Domain Name         : //' | xargs -I{} echo "DOMAIN_NAME={}" >> $GITHUB_OUTPUT
+#           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "🌐  Internal IP         : " | sed 's/🌐  Internal IP         : //' | xargs -I{} echo "INTERNAL_IP={}" >> $GITHUB_OUTPUT
+#           echo "$OUTPUT" | sed 's/\x1b\[[0-9;]*m//g' | grep "📦  Container ID        : " | sed 's/📦  Container ID        : //' | xargs -I{} echo "CONTAINER_ID={}" >> $GITHUB_OUTPUT
       
-      - name: Checkout code
-        uses: actions/checkout@v4
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Install Octokit
-        run: npm install @octokit/rest
-        working-directory: .github/scripts
+#       - name: Install Octokit
+#         run: npm install @octokit/rest
+#         working-directory: .github/scripts
 
-      - name: Comment Container Details in PR
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
-          EXIT_STATUS: ${{ steps.create-lxc.outputs.EXIT_STATUS }}
-          DOMAIN_NAME: ${{ steps.create-lxc.outputs.DOMAIN_NAME }}
-          SSH_COMMAND: ${{ steps.create-lxc.outputs.SSH_COMMAND }}
-          INTERNAL_IP: ${{ steps.create-lxc.outputs.INTERNAL_IP }}
-          CONTAINER_ID: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
-        run: |
-          node .github/scripts/writePrComment.mjs
+#       - name: Comment Container Details in PR
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#           GITHUB_REPOSITORY: ${{ github.repository }}
+#           GITHUB_PR_NUMBER: ${{ github.event.pull_request.number }}
+#           EXIT_STATUS: ${{ steps.create-lxc.outputs.EXIT_STATUS }}
+#           DOMAIN_NAME: ${{ steps.create-lxc.outputs.DOMAIN_NAME }}
+#           SSH_COMMAND: ${{ steps.create-lxc.outputs.SSH_COMMAND }}
+#           INTERNAL_IP: ${{ steps.create-lxc.outputs.INTERNAL_IP }}
+#           CONTAINER_ID: ${{ steps.create-lxc.outputs.CONTAINER_ID }}
+#         run: |
+#           node .github/scripts/writePrComment.mjs
 
-      - name: Exit STATUS
-        run: |
-          exit ${{ steps.create-lxc.outputs.EXIT_STATUS }}
+#       - name: Exit STATUS
+#         run: |
+#           exit ${{ steps.create-lxc.outputs.EXIT_STATUS }}
 
