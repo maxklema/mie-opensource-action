@@ -132,27 +132,27 @@ runs:
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: |
 
-        set +e
-        echo "Running Container Exists..."
-        ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
-        CONTAINER_EXISTS=$?
-        if [ $CONTAINER_EXISTS -eq 0 ] || [ $CONTAINER_EXISTS -eq 2 ] ; then
-            echo "Container \"$CONTAINER_NAME\" already found with this name. Cannot create container on this branch."
-            if [ ! $GITHUB_EVENT == 'push' ]; then
-                exit 1
-            fi
-        elif [ $CONTAINER_EXISTS -eq 1 ]; then
-            echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on $PROJECT_BRANCH branch."
+        STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
+        if [ "$STOP_SCRIPT" != true ]; then
+          set +e
+          echo "Running Container Exists..."
+          ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
+          CONTAINER_EXISTS=$?
+          if [ $CONTAINER_EXISTS -eq 0 ] || [ $CONTAINER_EXISTS -eq 2 ] ; then
+              echo "Container \"$CONTAINER_NAME\" already found with this name. Cannot create container on this branch."
+              if [ ! $GITHUB_EVENT == 'push' ]; then
+                  exit 1
+              fi
+          elif [ $CONTAINER_EXISTS -eq 1 ]; then
+              echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on $PROJECT_BRANCH branch."
             
-            # continue if an exit code error in remote container creation script
-            set +e
-
-            ssh -i ~/.ssh/id_rsa \
-            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND" \
-            create-container@10.15.0.4 
-            
-            echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
-            exit $?
+              ssh -i ~/.ssh/id_rsa \
+              -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND" \
+              create-container@10.15.0.4 
+              
+              echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
+              exit $?
+          fi
         fi
   
     - name: Container Update on Branch Push
