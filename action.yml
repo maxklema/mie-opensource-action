@@ -1,6 +1,6 @@
 # action.yml
-name: MIE LaunchPad
-description: Manage Proxmox MIE Containers for your Repository.
+name: Proxmox LaunchPad
+description: Manage Proxmox Containers for your Repository.
 author: maxklema
 branding:
   icon: 'package'
@@ -8,77 +8,92 @@ branding:
 
 inputs:
   github_event_name:
-    description: 'GitHub Event Name (create, push, delete)'
     required: true
   github_repository:
-    description: 'GitHub Repository (owner/repo)'
     required: true
   github_repository_owner:
-    description: 'GitHub Repository Owner'
     required: true
   github_ref_name:
-    description: 'GitHub Ref Name (Branch Name)'
     required: true
   proxmox_username:
-    description: 'Username for your MIE Proxmox Account'
     required: true
   proxmox_password:
-    description: 'Password for your MIE Proxmox Account'
     required: true
   container_password:
-    description: 'Password for your LXC Container'
     required: true
   public_key:
-    description: 'Public Key to be stored in your LXC Container'
     required: false
   http_port:
-    description: 'HTTP port your project will listen on.'
     required: true
   deploy_on_start:
-    description: 'Automatically deploy your project'
     required: false
   project_root:
-    description: 'Root directory of project to deploy from'
     required: false
   require_env_vars:
-    description: 'Dictates if project requires environment variables'
     required: false
   container_env_vars:
-    description: 'Dictionary of key/value environment variable pairs'
     required: false
   install_command:
-    description: 'Command to install dependencies'
     required: false
   build_command:
-    description: 'Command to build project'
     required: false
   start_command:
-    description: 'Command to start project'
     required: false
   runtime_language:
-    description: 'underlying runtime environment'
     required: false
   require_services:
-    description: 'Dictates if proejct requires special services'
     required: false
   services:
-    description: 'Array of valid services to install on container that are listed on the master service list.'
     required: false
   custom_services:
-    description: '2D Array of custom services and installation commands that are not listed in the master service list'
     required: false
   linux_distribution:
-    description: 'Rocky or Debian'
     required: true
   multi_component:
     required: false
   root_start_command:
     required: false
+  github_pat
+    required: true
   
     
 runs:
   using: "composite"
   steps:
+
+    - name: Create Runner (If Needed)
+      shell: bash
+      id: create-runner
+      env:
+         CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ steps.ref-basename.outputs.BRANCH_NAME }}
+         CONTAINER_PASSWORD: ${{ inputs.container_password }}
+         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
+         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
+         GITHUB_PAT: ${{ inputs.github_pat }}
+         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
+      run: |
+        RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
+
+        while read -r RUN; do
+            RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
+            if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
+               exit 0 #Runner exists, continue to next steps
+            fi
+        done < <(echo "$RESPONSE" | jq -c '.runners[]')
+
+        echo "Creating a Runner..."
+        apt install sshpass
+        set +e
+        sshpass -p 'mie123!' ssh -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION" setup-runner@opensource.mieweb.org
+        EXIT_STATUS=$?
+      
+        # Exit if a container exists by an associated runner does not.
+        if [ $EXIT_STATUS != 3 ]; then
+          echo "You do not have a github runner called $CONTAINER_NAME to run this action. Add one to your container and then retry the script."
+          exit 1
+        fi
+
+        echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
 
     - name: Git Ref basename
       shell: bash
@@ -86,8 +101,7 @@ runs:
       run: |
         BRANCH=$(basename ${{ inputs.github_ref_name}} )
         echo "BRANCH_NAME=$BRANCH" >> $GITHUB_OUTPUT
-
-
+        
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
@@ -129,7 +143,10 @@ runs:
             fi
         elif [ $CONTAINER_EXISTS -eq 1 ]; then
             echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on $PROJECT_BRANCH branch."
-          
+            
+            # continue if an exit code error in remote container creation script
+            set +e
+
             ssh -i ~/.ssh/id_rsa \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND" \
             create-container@10.15.0.4 
@@ -137,7 +154,7 @@ runs:
             echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
             exit $?
         fi
-
+  
     - name: Container Update on Branch Push
       shell: bash
       env:
@@ -156,10 +173,13 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
       if: ${{ inputs.github_event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
-        ssh -i ~/.ssh/id_rsa \
+        STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
+        if [ "$STOP_SCRIPT" != true ]; then
+          ssh -i ~/.ssh/id_rsa \
           -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND" \
           update-container@10.15.0.4
-        exit $?
+          exit $?
+        fi
 
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
@@ -170,6 +190,9 @@ runs:
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
       if: ${{ inputs.github_event_name == 'delete' }}
       run: |
-        ssh -i ~/.ssh/id_rsa \
+        STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
+        if [ "$STOP_SCRIPT" != true ]; then
+          ssh -i ~/.ssh/id_rsa \
           -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" delete-container@10.15.0.4
-        exit $?
+          exit $?
+        fi
