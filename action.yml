@@ -89,7 +89,7 @@ runs:
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
             if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
-              if [ "${IS_SELF_HOSTED^^}" == "N" ]; then
+              if [ "${CREATE_RUNNER_JOB^^}" == "N" ]; then
                   exit 0 #Runner exists, continue to next steps
               else
                   echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
