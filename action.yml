@@ -60,7 +60,14 @@ inputs:
 runs:
   using: "composite"
   steps:
-
+  
+    - name: Git Ref basename
+      shell: bash
+      id: ref-basename
+      run: |
+        BRANCH=$(basename ${{ inputs.github_ref_name}} )
+        echo "BRANCH_NAME=$BRANCH" >> $GITHUB_OUTPUT
+        
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
@@ -98,13 +105,6 @@ runs:
         fi
 
         echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
-
-    - name: Git Ref basename
-      shell: bash
-      id: ref-basename
-      run: |
-        BRANCH=$(basename ${{ inputs.github_ref_name}} )
-        echo "BRANCH_NAME=$BRANCH" >> $GITHUB_OUTPUT
         
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
