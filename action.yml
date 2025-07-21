@@ -86,7 +86,7 @@ runs:
         
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
-            echo "$RUNNER_NAME // $CONTAINER_NAME"
+            echo "Self hosted? $IS_SELF_HOSTED"
             if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
               if [ "$IS_SELF_HOSTED" == "true" ]; then
                   exit 0 #Runner exists, continue to next steps
