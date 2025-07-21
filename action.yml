@@ -93,7 +93,6 @@ runs:
             fi
         done < <(echo "$RESPONSE" | jq -c '.runners[]')
 
-         echo "$RESPONSE"
         echo "Creating a Runner..."
         set +e
         sshpass -p 'mie123!' ssh \
