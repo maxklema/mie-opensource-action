@@ -157,7 +157,7 @@ runs:
             -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" \
             container-exists@10.15.0.4
           CONTAINER_EXISTS=$?
-          if [ $CONTAINER_EXISTS -eq 1 ]
+          if [ $CONTAINER_EXISTS -eq 1 ]; then
             exit 1 # User does not own the container
           elif [ $CONTAINER_EXISTS -eq 0 ]; then
               echo "Cloning repository based on $PROJECT_BRANCH branch."
