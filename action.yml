@@ -53,7 +53,7 @@ inputs:
     required: false
   root_start_command:
     required: false
-  github_pat
+  github_pat:
     required: true
   
     
