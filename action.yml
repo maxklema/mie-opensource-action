@@ -150,7 +150,7 @@ runs:
         if [ "$STOP_SCRIPT" != true ]; then
           set +e
           echo "Running Container Exists..."
-          ssh -i ~/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
+          ssh -i /root/.ssh/id_rsa -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" container-exists@10.15.0.4
           CONTAINER_EXISTS=$?
           if [ $CONTAINER_EXISTS -eq 0 ] || [ $CONTAINER_EXISTS -eq 2 ] ; then
               echo "Container \"$CONTAINER_NAME\" already found with this name. Cannot create container on this branch."
@@ -160,7 +160,7 @@ runs:
           elif [ $CONTAINER_EXISTS -eq 1 ]; then
               echo "Container \"$CONTAINER_NAME\" Not Found. Creating Container based on $PROJECT_BRANCH branch."
             
-              ssh -i ~/.ssh/id_rsa \
+              ssh -i /root/.ssh/id_rsa \
               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND" \
               create-container@10.15.0.4 
               
@@ -189,7 +189,7 @@ runs:
       run: |
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
-          ssh -i ~/.ssh/id_rsa \
+          ssh -i /root/.ssh/id_rsa \
           -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND" \
           update-container@10.15.0.4
           exit $?
@@ -206,7 +206,7 @@ runs:
       run: |
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
-          ssh -i ~/.ssh/id_rsa \
+          ssh -i /root/.ssh/id_rsa \
           -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" delete-container@10.15.0.4
           exit $?
         fi
