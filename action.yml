@@ -86,11 +86,13 @@ runs:
         
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
+            echo "$RUNNER_NAME // $CONTAINER_NAME"
             if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
               if [ "$IS_SELF_HOSTED" == "true" ]; then
                   exit 0 #Runner exists, continue to next steps
               else
-                  echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT # Runner exists, continue to next job.
+                  echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
+                  exit 0 # Runner exists, continue to next job.
               fi
             fi
         done < <(echo "$RESPONSE" | jq -c '.runners[]')
