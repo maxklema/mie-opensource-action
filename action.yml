@@ -93,8 +93,8 @@ runs:
             fi
         done < <(echo "$RESPONSE" | jq -c '.runners[]')
 
+         echo "$RESPONSE"
         echo "Creating a Runner..."
-        set +e
         sshpass -p 'mie123!' ssh -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION" setup-runner@opensource.mieweb.org
         EXIT_STATUS=$?
       
