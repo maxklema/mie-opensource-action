@@ -84,7 +84,6 @@ runs:
          PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
       run: |
         RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
-        echo "$RESPONSE"
         
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
@@ -154,7 +153,7 @@ runs:
           ssh -i /root/.ssh/id_rsa \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME" \
+            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY" \
             container-exists@10.15.0.4
           CONTAINER_EXISTS=$?
           if [ $CONTAINER_EXISTS -eq 1 ]; then
