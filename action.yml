@@ -95,7 +95,13 @@ runs:
 
          echo "$RESPONSE"
         echo "Creating a Runner..."
-        sshpass -p 'mie123!' ssh -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION" setup-runner@opensource.mieweb.org
+        set +e
+        sshpass -p 'mie123!' ssh \
+          -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile=/dev/null \
+          -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION" \
+          setup-runner@opensource.mieweb.org
+
         EXIT_STATUS=$?
       
         # Exit if a container exists by an associated runner does not.
