@@ -71,13 +71,18 @@ runs:
          PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
          GITHUB_PAT: ${{ inputs.github_pat }}
          LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
+         IS_SELF_HOSTED: ${{ contains(runner.labels, 'self-hosted') }}
       run: |
         RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
             if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
-               exit 0 #Runner exists, continue to next steps
+              if [ "$IS_SELF_HOSTED" == "true" ]; then
+                  exit 0 #Runner exists, continue to next steps
+              else
+                  echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT # Runner exists, continue to next job.
+              fi
             fi
         done < <(echo "$RESPONSE" | jq -c '.runners[]')
 
