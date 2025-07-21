@@ -80,6 +80,7 @@ runs:
          LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
          IS_SELF_HOSTED: ${{ contains(runner.labels, 'self-hosted') }}
          DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
+         PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
       run: |
         RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
@@ -99,7 +100,7 @@ runs:
         sshpass -p 'mie123!' ssh \
           -o StrictHostKeyChecking=no \
           -o UserKnownHostsFile=/dev/null \
-          -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION DEPLOY_ON_START" \
+          -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION DEPLOY_ON_START PROJECT_REPOSITORY" \
           setup-runner@opensource.mieweb.org
 
         EXIT_STATUS=$?
