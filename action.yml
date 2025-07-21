@@ -55,6 +55,8 @@ inputs:
     required: false
   github_pat:
     required: true
+  is_self_hosted:
+    required: false
   
     
 runs:
@@ -78,7 +80,7 @@ runs:
          PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
          GITHUB_PAT: ${{ inputs.github_pat }}
          LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
-         IS_SELF_HOSTED: ${{ contains(runner.labels, 'self-hosted') }}
+         IS_SELF_HOSTED: ${{ inputs.is_self_hosted }}
          PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
       run: |
         RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
