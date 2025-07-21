@@ -55,7 +55,7 @@ inputs:
     required: false
   github_pat:
     required: true
-  is_self_hosted:
+  create_runner_job:
     required: false
   
     
@@ -80,7 +80,7 @@ runs:
          PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
          GITHUB_PAT: ${{ inputs.github_pat }}
          LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
-         IS_SELF_HOSTED: ${{ inputs.is_self_hosted }}
+         CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
          PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
       run: |
         RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
@@ -88,9 +88,8 @@ runs:
         
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
-            echo "Self hosted? $IS_SELF_HOSTED"
             if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
-              if [ "$IS_SELF_HOSTED" == "true" ]; then
+              if [ "${IS_SELF_HOSTED^^}" == "N" ]; then
                   exit 0 #Runner exists, continue to next steps
               else
                   echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
