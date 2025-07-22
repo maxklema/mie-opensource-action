@@ -83,6 +83,7 @@ runs:
          CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
          PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
       run: |
+        CONTAINER_NAME=${CONTAINER_NAME,,}
         RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
         
         while read -r RUN; do
@@ -145,7 +146,7 @@ runs:
         GH_ACTION: y
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: |
-
+        CONTAINER_NAME=${CONTAINER_NAME,,}
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
           set +e
@@ -190,6 +191,7 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
       if: ${{ inputs.github_event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
+        CONTAINER_NAME=${CONTAINER_NAME,,}
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
           ssh -i /root/.ssh/id_rsa \
@@ -211,6 +213,7 @@ runs:
         GITHUB_PAT: ${{ inputs.github_pat }}
       if: ${{ inputs.github_event_name == 'delete' }}
       run: |
+        CONTAINER_NAME=${CONTAINER_NAME,,}
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
           ssh -i /root/.ssh/id_rsa \
