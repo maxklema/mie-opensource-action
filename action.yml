@@ -146,7 +146,6 @@ runs:
         GH_ACTION: y
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: |
-        echo "MC: $MULTI_COMPONENT"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
