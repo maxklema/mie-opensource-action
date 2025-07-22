@@ -159,10 +159,6 @@ runs:
           CONTAINER_EXISTS=$?
           if [ $CONTAINER_EXISTS -eq 1 ]; then
             exit 1 # User does not own the container
-          elif [ $CONTAINER_EXISTS -eq 3 ]; then
-            echo "Nothing to update."
-            echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
-            exit 0
           elif [ $CONTAINER_EXISTS -eq 0 ]; then
               echo "Cloning repository based on $PROJECT_BRANCH branch."
             
