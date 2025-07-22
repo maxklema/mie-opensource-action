@@ -154,7 +154,7 @@ runs:
           ssh -i /root/.ssh/id_rsa \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY" \
+            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY DEPLOY_ON_START" \
             container-exists@10.15.0.4
           CONTAINER_EXISTS=$?
           if [ $CONTAINER_EXISTS -eq 1 ]; then
