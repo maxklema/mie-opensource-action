@@ -24,7 +24,7 @@ inputs:
   public_key:
     required: false
   http_port:
-    required: true
+    required: false
   deploy_on_start:
     required: false
   project_root:
