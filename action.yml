@@ -143,6 +143,7 @@ runs:
         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
         MULTI_COMPONENT: ${{ inputs.multi_component }}
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
+        GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
       if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
       run: |
@@ -165,7 +166,7 @@ runs:
               ssh -i /root/.ssh/id_rsa \
                -o StrictHostKeyChecking=no \
                -o UserKnownHostsFile=/dev/null \
-               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION" \
+               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GH_PAT" \
                create-container@10.15.0.4 
               
               echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
@@ -190,6 +191,7 @@ runs:
         MULTI_COMPONENT: ${{ inputs.multi_component }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
+        GITHUB_PAT: ${{ inputs.github_pat }}
       if: ${{ inputs.github_event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
         CONTAINER_NAME=${CONTAINER_NAME,,}
