@@ -192,18 +192,20 @@ runs:
         SERVICES: ${{ inputs.services }}
         CUSTOM_SERVICES: ${{ inputs.custom_services }}
         REQUIRE_SERVICES: ${{ inputs.require_services }}
+        LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
       if: ${{ inputs.github_event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        echo "$LINUX_DISTRIBUTION"
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
           ssh -i /root/.ssh/id_rsa \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES" \
+            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION" \
             update-container@10.15.0.4
           exit $?
         fi
