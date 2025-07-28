@@ -11,21 +11,21 @@ This GitHub action utilizes MIE's open source cluster to manage LXC containers d
 4. [Getting Started](#getting-started)
     - [Create-Runner Job](#create-runner-workflow-job)
     - [Manage-Container Job](#manage-container-workflow-job)
-4. [Configurations](#configurations)
+5. [Configurations](#configurations)
     - [Basic Properties](#basic-properties)
     - [Automatic Deployment Properties](#automatic-deployment-properties)
-5. [Important Notes for Automatic Deployment](#important-notes-for-automatic-deployment)
-6. [Output](#output)
-7. [Sample Workflow File ](#sample-workflow-file)
-8. [Misc.](#misc)
+6. [Important Notes for Automatic Deployment](#important-notes-for-automatic-deployment)
+7. [Output](#output)
+8. [Sample Workflow File ](#sample-workflow-file)
+9. [Misc.](#misc)
 
 ## Video Walkthroughs
 
 I have created a series of videos to walk you through automatic deployment, both in GitHub and via the command line.
 
-**[Long-Form]** Proxmox LaunchPad Walkthrough: [Video](https://youtu.be/Xa2L1o-atEM)
-**[Short-Form]** Proxmox LaunchPad Demonstration: [Short](https://youtube.com/shorts/SuK73Jej5j4)
-**[Long-Form]** Automatic Deployment through Command Line: [Video](https://youtu.be/acDW-a32Yr8)
+**[Long-Form]** Proxmox LaunchPad Walkthrough: [Video](https://youtu.be/Xa2L1o-atEM)<br>
+**[Short-Form]** Proxmox LaunchPad Demonstration: [Short](https://youtube.com/shorts/SuK73Jej5j4)<br>
+**[Long-Form]** Automatic Deployment through Command Line: [Video](https://youtu.be/acDW-a32Yr8)<br>
 **[Long-Form]** Getting Started with Creating LXC Continers with Proxmox: [Video](https://youtu.be/sVW3dkBqs4E)
 
 ## Sequence Diagram
@@ -221,15 +221,20 @@ See an example output below:
 📌  Note: Your container listens on SSH Port 22 internally,
     but EXTERNAL traffic must use the SSH port listed below:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅  Hostname Registration: polyglot-test-maxklema-main → 10.15.27.151
-🔐  SSH Port            : 2355
+✅  Hostname Registration: polyglot-test-maxklema-pull-request → 10.15.129.23
+🔐  SSH Port            : 2344
 🌐  HTTP Port           : 32000
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📦  Container ID        : 120
-🌐  Internal IP         : 10.15.27.151
-🔗  Domain Name         : https://polyglot-test-maxklema-main.opensource.mieweb.org
-🛠️  SSH Access          : ssh -p 2355 root@polyglot-test-maxklema-main.opensource.mieweb.org
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📦  Container ID        : 136
+🌐  Internal IP         : 10.15.129.23
+🔗  Domain Name         : https://polyglot-test-maxklema-pull-request.opensource.mieweb.org
+🛠️  SSH Access          : ssh -p 2344 root@polyglot-test-maxklema-pull-request.opensource.mieweb.org
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NOTE: Additional background scripts are being ran in detached terminal sessions.
+Wait up to two minutes for all processes to complete.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Still not working? Contact Max K. at maxklema@gmail.com
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
 > **NOTE**: Even if your GitHub Action workflow is finished, *it may not be accessible right away. Background tasks (migration, template cloning, cleanup, etc) are still be ran in detatched terminal sessions*. Wait up to two minutes for all tasks to complete.
