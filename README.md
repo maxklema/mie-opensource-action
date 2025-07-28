@@ -1,15 +1,16 @@
-# LaunchPad for MIE
+# Proxmox LaunchPad
 
 This GitHub action utilizes MIE's open source cluster to manage LXC containers derived from your github repository source code.
 
 > **Note**: This project is new and is in a early version. There are likely bugs. If you encounter any, please create an issue.
 
 ## Table of Contents
-1. [Mermaid Diagram](#mermaid-diagram)
-2. [Prerequisites](#prerequisites)
-3. [Getting Started](#getting-started)
-    - [Workflow Job](#workflow-job)
-    - [Self-Hosted Runner](#self-hosted-runner)
+1. [Video Walkthroughs](#video-walkthroughs)
+2. [Sequence Diagram](#sequence-diagram)
+3. [Prerequisites](#prerequisites)
+4. [Getting Started](#getting-started)
+    - [Create-Runner Job](#create-runner-workflow-job)
+    - [Manage-Container Job](#manage-container-workflow-job)
 4. [Configurations](#configurations)
     - [Basic Properties](#basic-properties)
     - [Automatic Deployment Properties](#automatic-deployment-properties)
@@ -18,39 +19,49 @@ This GitHub action utilizes MIE's open source cluster to manage LXC containers d
 7. [Sample Workflow File ](#sample-workflow-file)
 8. [Misc.](#misc)
 
-## Mermaid Diagram
+## Video Walkthroughs
 
-The mermaid diagram below describes the sequence of events executed by this Github Action.
+I have created a series of videos to walk you through automatic deployment, both in GitHub and via the command line.
+
+**[Long-Form]** Proxmox LaunchPad Walkthrough: [Video](https://youtu.be/Xa2L1o-atEM)
+**[Short-Form]** Proxmox LaunchPad Demonstration: [Short](https://youtube.com/shorts/SuK73Jej5j4)
+**[Long-Form]** Automatic Deployment through Command Line: [Video](https://youtu.be/acDW-a32Yr8)
+**[Long-Form]** Getting Started with Creating LXC Continers with Proxmox: [Video](https://youtu.be/sVW3dkBqs4E)
+
+## Sequence Diagram
+
+The sequence diagram below describes the sequence of events executed by this Github Action.
 
 ```mermaid
----
-config:
-  layout: dagre
----
-flowchart LR
-    A["Start: Prerequisites"] --> B["Add Workflow File to Repo"]
-    B --> C["Configure Trigger Events (Push, Create, Delete)"]
-    C --> D["Set Up Workflow Job"]
-    D --> E["Configure Required Properties"]
-    E --> F{"deploy_on_start = y?"}
-    F -- Yes --> G["Configure Automatic Deployment Properties"]
-    F -- No --> H["Proceed with Basic Container Creation"]
-    G --> I{"Single or Multi-Component?"}
-    I -- Single --> J["Set Single Component Properties"]
-    I -- Multi --> K["Set Multi-Component Properties"]
-    J --> L["Run Workflow"]
-    K --> L
-    H --> L
-    L --> M["Container Created/Updated/Deleted"]
-    M --> N["Output Container Details"]
-    N --> O["End"]
+sequenceDiagram
+    participant Dev as Developer
+    participant GH as GitHub
+    participant GHAR as GitHub Actions Runner (hosted)
+    participant Prox as Proxmox Cluster
+    participant LXC as LXC Container (Self-hosted Runner)
 
+    Dev->>GH: Push/Create/Delete branch
+    GH->>GHAR: Trigger workflow
+
+    alt Push/Create event
+        GHAR->>Prox: Check if LXC container exists for branch
+        alt Container does not exist
+            GHAR->>Prox: Clone template, create LXC container
+            Prox->>LXC: Start container, configure self-hosted runner
+            GHAR->>LXC: Register self-hosted runner
+            GHAR->>LXC: Run manage container job (install deps, clone repo, install services, deploy app)
+        else Container exists
+            GHAR->>Prox: Call update script
+            Prox->>LXC: Update container contents, restart with latest branch
+        end
+    else Delete event
+        GHAR->>LXC: Call delete-container script
+        LXC->>Prox: Remove runner and delete LXC container
+    end
 ```
 
 ## Prerequisites
 - Valid Proxmox Account at [https://opensource.mieweb.org:8006](https://opensource.mieweb.org:8006).
-- A public repository housed on mieweb (This organization has access to our self-hosted runner).
-
 ## Getting Started
 
 To use this action in your repository, you need to add the following trigger events in a workflow file:
@@ -65,9 +76,45 @@ on:
 
 This allows a container to be created/updated on a push command, created when a new branch is created, and deleted when a branch is deleted (like in the case of an accepted PR).
 
-### Workflow Job
+### Create-Runner Workflow Job
 
-The job in your workflow file should look similar to this:
+Before a container can be managed, a self-hosted runner must be installed on the LXC container to complete future workflow jobs. To do this, a github-supplied runner needs to create the container and install/start a custom runner on it that is linked to your repository.
+
+The create-runner job in your workflow file should look similar to this:
+
+```yaml
+setup-runner:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.event.created == false
+    steps:
+      - name: Install Dependencies
+        run: |
+          sudo apt install -y sshpass jq
+
+      - uses: maxklema/proxmox-launchpad@main
+        with:
+          github_event_name: ${{ github.event_name }}
+          github_repository: ${{ github.event.repository.name }}
+          github_repository_owner: ${{ github.repository_owner }}
+          github_ref_name: ${{ github.event.ref }}
+          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
+          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
+          container_password: ${{ secrets.CONTAINER_PASSWORD }}
+          linux_distribution: debian
+          github_pat: ${{ secrets.GH_PAT }}
+          create_runner_job: y
+```
+
+The GitHub runner needs to install sshpass (used to authenticate into another host using password authentication) and jq (a popular package for managing/parsing JSON data).
+
+In the second step, 10 fields are required: `github_event_name`, `github_repository`, `github_repository_owner`, `github_ref_name`, `proxmox_password`, `proxmox_username`, `container_password`, `linux_distribution`, `github_pat`, and `create_runner_job`.
+
+To see an explanation for these fields: See [Basic Properties](#basic-properties)
+
+
+### Manage-Container Workflow Job
+
+The second job in your workflow file should look similar to this:
 
 ```yaml
 jobs:
@@ -88,15 +135,13 @@ jobs:
           public_key: ${{ secrets.PUBLIC_KEY }}
 ```
 
+
+
 > **Note**: The conditional statement ensures that a container cannot be created <i>and</i> updated at the same time when creating a new branch, which can result in unexpected behavior.
-
-### Self-Hosted Runner
-
-As mentioned in [Prequisites](#prerequisites), this workflow must run on MIE's own self-hosted runner. Using a runner supplied by Github will not work (at least for now).
 
 ## Configurations
 
-At the very minimum, nine configuration settings are required to create any container. Some of these are supplied by Github. With all of these properties specified, you can create an empty container for a branch.
+At the very minimum, eleven configuration settings are required to create any container. Some of these are supplied by Github. With all of these properties specified, you can create an empty container for a branch.
 
 ### Basic Properties
 
@@ -109,8 +154,10 @@ At the very minimum, nine configuration settings are required to create any cont
 | `proxmox_username` | Yes | Your proxmox username assigned to you. | N/A
 | `proxmox_password` | Yes | Your proxmox password assigned to you. | N/A
 | `container_password` | Yes |  The password for your container. **NOTE**: This should be different from your account password. Your Proxmox account can manage multiple containers, each of which have their own, unique, password. | N/A
-| `http_port` | Yes | The HTTP Port for your container to listen on. It must be between `80` and `60000`. | N/A
+| `http_port` | Only in `manage-container` job. | The HTTP Port for your container to listen on. It must be between `80` and `60000`. | N/A
 | `linux_distribution` | Yes | The Linux Distribution that runs on your container. Currently, `rocky` (Rocky 9.5) and `debian` (Debian 12) are available. | N/A
+| `create_runner_job` | Yes | Used to specify whether the job must create a self-hosted runner. Only set to `yes` in the [create-runner](#create-runner-workflow-job) job. Set to `no` in the [manage-container](#manage-container-workflow-job) job. | N/A
+| `github_pat` | Yes | Your GitHub Personal Access Token. This is used to manage runners in your containers. | Yes. Accessable in developer settings. |
 
 
 There are a few other properties that are not required, but can still be specified in the workflow file:
@@ -156,7 +203,7 @@ There are two types of deployments: single component and multi-component deploym
 ## Important Notes for Automatic Deployment
 
 Below are some important things to keep in mind if you want your application to be automatically deployed:
-- If you are using meteor, you must start your application with the flag ``--alow-superuser``.
+- If you are using meteor, you must start your application with the flag ``--allow-superuser``.
 - When running a service, ensure it is listening on `0.0.0.0` (your IP) instead of only locally at `127.0.0.1`.
 - The Github action will fail with an exit code and message if a property is not set up correctly.
 
@@ -185,11 +232,14 @@ See an example output below:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
+> **NOTE**: Even if your GitHub Action workflow is finished, *it may not be accessible right away. Background tasks (migration, template cloning, cleanup, etc) are still be ran in detatched terminal sessions*. Wait up to two minutes for all tasks to complete.
+
 ## Sample Workflow File
 
 The workflow file below is an example workflow designed to deploy a multi-component application with a python (flask) backend and nodejs (vite) frontend:
 
 ```yaml
+# .github/workflows/proxmox.yml
 # .github/workflows/proxmox.yml
 name: Proxmox Container Management
 
@@ -200,8 +250,29 @@ on:
   delete:
 
 jobs:
+  setup-runner:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.event.created == false
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get install -y sshpass jq
+
+      - uses: maxklema/mie-opensource-action@main
+        with:
+          github_event_name: ${{ github.event_name }}
+          github_repository: ${{ github.event.repository.name }}
+          github_repository_owner: ${{ github.repository_owner }}
+          github_ref_name: ${{ github.event.ref }}
+          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
+          proxmox_username: demouser
+          container_password: ${{ secrets.CONTAINER_PASSWORD }}
+          linux_distribution: rocky
+          github_pat: ${{ secrets.GH_PAT }}
+          create_runner_job: y
   manage-container:
     runs-on: self-hosted
+    needs: setup-runner
     if: github.event_name != 'push' || github.event.created == false
     steps:
       - uses: maxklema/mie-opensource-action@main
@@ -211,21 +282,26 @@ jobs:
           github_repository_owner: ${{ github.repository_owner }}
           github_ref_name: ${{ github.event.ref }}
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
-          proxmox_username: maxklema
+          proxmox_username: demouser
           container_password: ${{ secrets.CONTAINER_PASSWORD }}
           http_port: 32000
+          linux_distribution: rocky
           public_key: ${{ secrets.PUBLIC_KEY }}
           deploy_on_start: y
+          multi_component: y
           require_env_vars: y
-          container_env_vars: '{"frontend": { "api_key": "123"}, "backend": { "password": "abc123" }}'
-          install_command: '{"frontend": "npm i", "backend": "pip install -r ../requirements.txt"}'
-          build_command:
-          start_command: '{"frontend": "npm run dev", "backend": "FLASK_ENV=development flask run"}'
+          container_env_vars: '{"frontend": { "test-frontend": "123"}, "backend": {"test-backend": "ABC"}}'
+          install_command: '{"frontend": "npm install", "backend": "pip install -r ../requirements.txt"}'
+          build_command: "{}"
+          start_command: '{"frontend": "npm run dev", "backend": "FLASK_ENV=deployment flask run"}'
           runtime_language: '{"frontend": "nodejs", "backend": "python"}'
           require_services: y
+          project_root: /
           services: '["mongodb", "docker"]'
-          linux_distribution: debian
-          multi_component: y
+          custom_services: ''
+          root_start_command:
+          github_pat: ${{ secrets.GH_PAT }}
+          create_runner_job: n
 ```
 
 ## Misc.

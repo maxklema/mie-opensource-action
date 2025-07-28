@@ -149,7 +149,7 @@ runs:
       run: |
         CONTAINER_NAME=${CONTAINER_NAME,,}
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
-        if [ "$STOP_SCRIPT" != true ]; then
+        if [ "$STOP_SCRIPT" != "true" ]; then
           set +e
           echo "Running Container Exists..."
           ssh -i /root/.ssh/id_rsa \
