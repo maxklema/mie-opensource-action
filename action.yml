@@ -62,7 +62,11 @@ inputs:
 runs:
   using: "composite"
   steps:
-  
+    - name: ENV
+      shell: bash
+      run: |
+        env
+        
     - name: Git Ref basename
       shell: bash
       id: ref-basename
