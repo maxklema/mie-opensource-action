@@ -10,17 +10,7 @@ inputs:
   proxmox_username:
     required: true
   proxmox_password:
-    re    - name: Container Deletion on Branch Deletion (Check)
-      shell: bash
-      env:
-        GITHUB_EVENT: ${{ github.event_name }}
-        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
-        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
-        PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
-        PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
-        GITHUB_PAT: ${{ inputs.github_pat }}e
+    required: true
   container_password:
     required: true
   public_key:
