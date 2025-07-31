@@ -73,11 +73,11 @@ runs:
         CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
         PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
       run: |
-        echo "RP FULL $GITHUB_REPOSITORY_FULL // ${{ env.GITHUB_REPOSITORY }}"
-        echo "O: $GITHUB_REPOSITORY_OWNER"
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        echo "CN: $CONTAINER_NAME"
+        echo "RP: $REPO_NAME"
         export CONTAINER_NAME
         RESPONSE=$(curl --location ${{ env.GITHUB_API_URL }}/repos/${{ env.GITHUB_REPOSITORY }}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
