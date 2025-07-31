@@ -3,18 +3,10 @@ name: Proxmox LaunchPad
 description: Manage Proxmox Containers for your Repository.
 author: maxklema
 branding:
-  icon: 'package'
-  color: 'purple'
+  icon: "package"
+  color: "purple"
 
 inputs:
-  github_event_name:
-    required: true
-  github_repository:
-    required: true
-  github_repository_owner:
-    required: true
-  github_ref_name:
-    required: true
   proxmox_username:
     required: true
   proxmox_password:
@@ -57,39 +49,31 @@ inputs:
     required: true
   create_runner_job:
     required: false
-  
-    
+
 runs:
   using: "composite"
   steps:
-    - name: ENV
-      shell: bash
-      run: |
-        env
-        
-    - name: Git Ref basename
-      shell: bash
-      id: ref-basename
-      run: |
-        BRANCH=$(basename ${{ inputs.github_ref_name}} )
-        echo "BRANCH_NAME=$BRANCH" >> $GITHUB_OUTPUT
-        
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
       env:
-         CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ steps.ref-basename.outputs.BRANCH_NAME }}
-         CONTAINER_PASSWORD: ${{ inputs.container_password }}
-         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
-         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-         GITHUB_PAT: ${{ inputs.github_pat }}
-         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
-         CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
-         PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
+        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
+        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
+        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
+        CONTAINER_PASSWORD: ${{ inputs.container_password }}
+        PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
+        PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
+        GITHUB_PAT: ${{ inputs.github_pat }}
+        LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
+        CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
+        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
       run: |
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
-        RESPONSE=$(curl --location https://api.github.com/repos/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}/actions/runners --header "Authorization: token $GITHUB_PAT")
-        
+        export CONTAINER_NAME
+        RESPONSE=$(curl --location ${{ env.GITHUB_API_URL }}/repos/${{ env.GITHUB_REPOSITORY }}/actions/runners --header "Authorization: token $GITHUB_PAT")
+
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
             if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
@@ -105,13 +89,14 @@ runs:
         echo "Creating a Runner..."
         set +e
         sshpass -p 'mie123!' ssh \
+          -T \
           -o StrictHostKeyChecking=no \
           -o UserKnownHostsFile=/dev/null \
           -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION PROJECT_REPOSITORY" \
           setup-runner@opensource.mieweb.org
 
         EXIT_STATUS=$?
-      
+
         # Exit if a container exists by an associated runner does not.
         if [ $EXIT_STATUS != 3 ]; then
           echo "You do not have a github runner called $CONTAINER_NAME to run this action. Add one to your container and then retry the script."
@@ -119,27 +104,29 @@ runs:
         fi
 
         echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
-        
+
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
       env:
-        GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ steps.ref-basename.outputs.BRANCH_NAME }}
+        GITHUB_EVENT: ${{ env.GITHUB_EVENT_NAME }}
+        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
+        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
+        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PUBLIC_KEY: ${{ inputs.public_key }}
         HTTP_PORT: ${{ inputs.http_port }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
-        PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
-        PROJECT_BRANCH: ${{ steps.ref-basename.outputs.BRANCH_NAME }}
+        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
+        PROJECT_BRANCH: ${{ env.GITHUB_REF_NAME }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
         CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
         START_COMMAND: ${{ inputs.start_command }}
-        BUILD_COMMAND:  ${{ inputs.build_command }}
+        BUILD_COMMAND: ${{ inputs.build_command }}
         RUNTIME_LANGUAGE: ${{ inputs.runtime_language }}
         REQUIRE_SERVICES: ${{ inputs.require_services }}
         SERVICES: ${{ inputs.services }}
@@ -149,48 +136,64 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ inputs.github_event_name == 'create' || inputs.github_event_name == 'push' }}
+      if: ${{ env.GITHUB_EVENT_NAME == 'create' || env.GITHUB_EVENT_NAME == 'push' }}
       run: |
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        export CONTAINER_NAME
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != "true" ]; then
           set +e
           echo "Running Container Exists..."
-          ssh -i /root/.ssh/id_rsa \
+          
+          # Determine SSH target based on network location
+          EXTERNAL_IP=$(dig +short opensource.mieweb.org)
+          if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
+            SSH_TARGET="10.15.0.4"
+          else
+            SSH_TARGET="opensource.mieweb.org"
+          fi
+          
+          sshpass -p 'mie123!' ssh \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY" \
-            container-exists@10.15.0.4
+            container-exists@$SSH_TARGET
           CONTAINER_EXISTS=$?
           if [ $CONTAINER_EXISTS -eq 1 ]; then
             exit 1 # User does not own the container
           elif [ $CONTAINER_EXISTS -eq 0 ]; then
               echo "Cloning repository based on $PROJECT_BRANCH branch."
-            
-              ssh -i /root/.ssh/id_rsa \
+
+              sshpass -p 'mie123!' ssh \
+               -T \
                -o StrictHostKeyChecking=no \
                -o UserKnownHostsFile=/dev/null \
-               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT" \
-               create-container@10.15.0.4 
+               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PUBLIC_KEY PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT" \
+               create-container@$SSH_TARGET 
               
               echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
               exit $?
           fi
         fi
-  
+
     - name: Container Update on Branch Push
       shell: bash
       env:
-        GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ steps.ref-basename.outputs.BRANCH_NAME }}
+        GITHUB_EVENT: ${{ env.GITHUB_EVENT_NAME }}
+        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
+        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
+        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
-        PROJECT_BRANCH: ${{ steps.ref-basename.outputs.BRANCH_NAME }}
+        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
+        PROJECT_BRANCH: ${{ env.GITHUB_REF_NAME }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
         START_COMMAND: ${{ inputs.start_command }}
-        BUILD_COMMAND:  ${{ inputs.build_command }}
+        BUILD_COMMAND: ${{ inputs.build_command }}
         RUNTIME_LANGUAGE: ${{ inputs.runtime_language }}
         MULTI_COMPONENT: ${{ inputs.multi_component }}
         SERVICES: ${{ inputs.services }}
@@ -201,38 +204,64 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ inputs.github_event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
+      if: ${{ env.GITHUB_EVENT_NAME == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        export CONTAINER_NAME
         echo "$LINUX_DISTRIBUTION"
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
-          ssh -i /root/.ssh/id_rsa \
+          # Determine SSH target based on network location
+          EXTERNAL_IP=$(dig +short opensource.mieweb.org)
+          if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
+            SSH_TARGET="10.15.0.4"
+          else
+            SSH_TARGET="opensource.mieweb.org"
+          fi
+          
+          sshpass -p 'mie123!' ssh \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION" \
-            update-container@10.15.0.4
+            update-container@$SSH_TARGET
           exit $?
         fi
 
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
       env:
-        GITHUB_EVENT: ${{ inputs.github_event_name }}
-        CONTAINER_NAME: ${{ inputs.github_repository }}-${{ inputs.github_repository_owner }}-${{ steps.ref-basename.outputs.BRANCH_NAME }}
+        GITHUB_EVENT: ${{ env.GITHUB_EVENT_NAME }}
+        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
+        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
+        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PROJECT_REPOSITORY: https://github.com/${{ inputs.github_repository_owner }}/${{ inputs.github_repository }}
+        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
         GITHUB_PAT: ${{ inputs.github_pat }}
-      if: ${{ inputs.github_event_name == 'delete' }}
+      if: ${{ env.GITHUB_EVENT_NAME == 'delete' }}
       run: |
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        export CONTAINER_NAME
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
-          ssh -i /root/.ssh/id_rsa \
+          # Determine SSH target based on network location
+          EXTERNAL_IP=$(dig +short opensource.mieweb.org)
+          if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
+            SSH_TARGET="10.15.0.4"
+          else
+            SSH_TARGET="opensource.mieweb.org"
+          fi
+          
+          sshpass -p 'mie123!' ssh \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME GITHUB_PAT PROJECT_REPOSITORY" \
-            delete-container@10.15.0.4
+            delete-container@$SSH_TARGET
           exit $?
         fi
