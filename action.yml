@@ -12,7 +12,7 @@ inputs:
   proxmox_password:
     required: true
   container_password:
-    required: true
+    required: false
   public_key:
     required: false
   http_port:
@@ -40,14 +40,12 @@ inputs:
   custom_services:
     required: false
   linux_distribution:
-    required: true
+    required: false
   multi_component:
     required: false
   root_start_command:
     required: false
   github_pat:
-    required: true
-  create_runner_job:
     required: false
 
 runs:
@@ -57,23 +55,30 @@ runs:
       shell: bash
       id: create-runner
       env:
-          GITHUB_REPOSITORY_FULL: ${{ github.repository }}
-          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-          GITHUB_REF_NAME: ${{ github.ref_name }}
-          CONTAINER_PASSWORD: ${{ inputs.container_password }}
-          PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
-          PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-          GITHUB_PAT: ${{ inputs.github_pat }}
-          GITHUB_API: ${{ github.api_url }}
-          LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
-          CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
-          PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        CONTAINER_PASSWORD: ${{ inputs.container_password }}
+        PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
+        PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
+        GITHUB_PAT: ${{ inputs.github_pat }}
+        GITHUB_API: ${{ github.api_url }}
+        LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
+        PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+        GITHUB_JOB: ${{ github.job }}
       run: |
         set -x
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         export CONTAINER_NAME
+
+        # Auto-detect if this is a runner setup job based on job name or if no container inputs are provided
+        CREATE_RUNNER_JOB="N"
+        if [[ "$GITHUB_JOB" == *"setup"* ]] || [[ "$GITHUB_JOB" == *"runner"* ]]; then
+          CREATE_RUNNER_JOB="Y"
+        fi
+
         RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_OWNER}/${REPO_NAME}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
         while read -r RUN; do
