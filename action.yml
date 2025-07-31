@@ -57,24 +57,24 @@ runs:
       shell: bash
       id: create-runner
       env:
-        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
-        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
-        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
-        CONTAINER_PASSWORD: ${{ inputs.container_password }}
-        PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
-        PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        GITHUB_PAT: ${{ inputs.github_pat }}
-        GITHUB_API: ${{ env.GITHUB_API_URL }}
-        LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
-        CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
-        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
+          GITHUB_REPOSITORY_FULL: ${{ github.repository }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          CONTAINER_PASSWORD: ${{ inputs.container_password }}
+          PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
+          PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
+          GITHUB_PAT: ${{ inputs.github_pat }}
+          GITHUB_API: ${{ github.api_url }}
+          LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
+          CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
+          PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
       run: |
         set -x
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         export CONTAINER_NAME
-        RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_FULL}/actions/runners --header "Authorization: token $GITHUB_PAT")
+        RESPONSE=$(curl --location ${GITHUB_API}/repos/${REPO_NAME}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
