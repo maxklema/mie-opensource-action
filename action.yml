@@ -62,7 +62,7 @@ runs:
       shell: bash
       id: create-runner
       env:
-        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
+        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
         GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
