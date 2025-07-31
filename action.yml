@@ -53,11 +53,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Get Env
-      shell: bash
-      run: |
-        env
-    
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
