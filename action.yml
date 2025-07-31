@@ -74,7 +74,7 @@ runs:
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         export CONTAINER_NAME
-        RESPONSE=$(curl --location ${GITHUB_API}/repos/${REPO_NAME}/actions/runners --header "Authorization: token $GITHUB_PAT")
+        RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_OWNER}/${REPO_NAME}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
