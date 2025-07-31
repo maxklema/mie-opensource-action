@@ -56,7 +56,7 @@ runs:
     - name: Get Env
       shell: bash
       run: |
-        echo env
+        env
     
     - name: Create Runner (If Needed)
       shell: bash
