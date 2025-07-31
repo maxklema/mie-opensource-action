@@ -73,7 +73,7 @@ runs:
         CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
         PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
       run: |
-        echo "$GITHUB_REPOSITORY_FULL"
+        echo "RP FULL $GITHUB_REPOSITORY_FULL // ${{ env.GITHUB_REPOSITORY }}"
         echo "O: $GITHUB_REPOSITORY_OWNER"
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
