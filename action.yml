@@ -69,6 +69,7 @@ runs:
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         GITHUB_PAT: ${{ inputs.github_pat }}
+        GITHUB_API: ${{ env.GITHUB_API_URL }}
         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
         CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
         PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
@@ -81,7 +82,7 @@ runs:
         env
         echo "API_URL: ${env.GITHUB_API_URL}"
         echo "REPOSITORY: ${env.GITHUB_REPOSITORY}"
-        RESPONSE=$(curl --location ${{ env.GITHUB_API_URL }}/repos/${{ env.GITHUB_REPOSITORY }}/actions/runners --header "Authorization: token $GITHUB_PAT")
+        RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_FULL}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
         while read -r RUN; do
             RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
