@@ -74,8 +74,6 @@ runs:
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         export CONTAINER_NAME
-        echo "API_URL: ${env.GITHUB_API_URL}"
-        echo "REPOSITORY: ${env.GITHUB_REPOSITORY}"
         RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_FULL}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
         while read -r RUN; do
