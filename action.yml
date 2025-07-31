@@ -67,7 +67,6 @@ runs:
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         GITHUB_JOB: ${{ github.job }}
       run: |
-        set -x
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
