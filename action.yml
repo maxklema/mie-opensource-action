@@ -12,7 +12,7 @@ inputs:
   proxmox_password:
     required: true
   container_password:
-    required: true
+    required: false
   public_key:
     required: false
   http_port:
@@ -40,94 +40,96 @@ inputs:
   custom_services:
     required: false
   linux_distribution:
-    required: true
+    required: false
   multi_component:
     required: false
   root_start_command:
     required: false
   github_pat:
-    required: true
-  create_runner_job:
     required: false
 
 runs:
   using: "composite"
   steps:
-    - name: Get Env
-      shell: bash
-      run: |
-        env
-    
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
       env:
-        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
-        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
-        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
+        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         GITHUB_PAT: ${{ inputs.github_pat }}
+        GITHUB_API: ${{ github.api_url }}
         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
-        CREATE_RUNNER_JOB: ${{ inputs.create_runner_job }}
-        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
+        PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+        GITHUB_JOB: ${{ github.job }}
       run: |
-        echo "$GITHUB_REPOSITORY_FULL"
-        echo "O: $GITHUB_REPOSITORY_OWNER"
+        set -x
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         export CONTAINER_NAME
-        RESPONSE=$(curl --location ${{ env.GITHUB_API_URL }}/repos/${{ env.GITHUB_REPOSITORY }}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
-        while read -r RUN; do
-            RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
-            if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
-              if [ "${CREATE_RUNNER_JOB^^}" == "N" ]; then
-                  exit 0 #Runner exists, continue to next steps
-              else
-                  echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
-                  exit 0 # Runner exists, continue to next job.
-              fi
-            fi
-        done < <(echo "$RESPONSE" | jq -c '.runners[]')
-
-        echo "Creating a Runner..."
-        set +e
-        sshpass -p 'mie123!' ssh \
-          -T \
-          -o StrictHostKeyChecking=no \
-          -o UserKnownHostsFile=/dev/null \
-          -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION PROJECT_REPOSITORY" \
-          setup-runner@opensource.mieweb.org
-
-        EXIT_STATUS=$?
-
-        # Exit if a container exists by an associated runner does not.
-        if [ $EXIT_STATUS != 3 ]; then
-          echo "You do not have a github runner called $CONTAINER_NAME to run this action. Add one to your container and then retry the script."
-          exit 1
+        # Auto-detect if this is a runner setup job based on job name or if no container inputs are provided
+        CREATE_RUNNER_JOB="N"
+        if [[ "$GITHUB_JOB" == *"setup"* ]] || [[ "$GITHUB_JOB" == *"runner"* ]]; then
+          CREATE_RUNNER_JOB="Y"
         fi
 
-        echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
+        if [ ! -z "$GITHUB_PAT" ]; then
+          RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_OWNER}/${REPO_NAME}/actions/runners --header "Authorization: token $GITHUB_PAT")
+
+          while read -r RUN; do
+              RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
+              if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
+                if [ "${CREATE_RUNNER_JOB^^}" == "N" ]; then
+                    exit 0 #Runner exists, continue to next steps
+                else
+                    echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
+                    exit 0 # Runner exists, continue to next job.
+                fi
+              fi
+          done < <(echo "$RESPONSE" | jq -c '.runners[]')
+
+          echo "Creating a Runner..."
+          set +e
+          sshpass -p 'mie123!' ssh \
+            -T \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION PROJECT_REPOSITORY" \
+            setup-runner@opensource.mieweb.org
+
+          EXIT_STATUS=$?
+
+          # Exit if a container exists but an associated runner does not.
+          if [ $EXIT_STATUS != 3 ]; then
+            echo "You do not have a github runner called $CONTAINER_NAME to run this action. Add one to your container and then retry the script."
+            exit 1
+          fi
+
+          echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
+        fi
 
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
       env:
-        GITHUB_EVENT: ${{ env.GITHUB_EVENT_NAME }}
-        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
-        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
-        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
+        GITHUB_EVENT: ${{ github.event_name }}
+        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PUBLIC_KEY: ${{ inputs.public_key }}
         HTTP_PORT: ${{ inputs.http_port }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
-        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
-        PROJECT_BRANCH: ${{ env.GITHUB_REF_NAME }}
+        PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+        PROJECT_BRANCH: ${{ github.ref_name }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
         CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
@@ -143,7 +145,7 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ env.GITHUB_EVENT_NAME == 'create' || env.GITHUB_EVENT_NAME == 'push' }}
+      if: ${{ github.event_name == 'create' || github.event_name == 'push' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
@@ -189,14 +191,14 @@ runs:
     - name: Container Update on Branch Push
       shell: bash
       env:
-        GITHUB_EVENT: ${{ env.GITHUB_EVENT_NAME }}
-        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
-        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
-        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
+        GITHUB_EVENT: ${{ github.event_name }}
+        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
-        PROJECT_BRANCH: ${{ env.GITHUB_REF_NAME }}
+        PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
+        PROJECT_BRANCH: ${{ github.ref_name }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
         START_COMMAND: ${{ inputs.start_command }}
@@ -211,7 +213,7 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ env.GITHUB_EVENT_NAME == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
+      if: ${{ github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
@@ -240,15 +242,15 @@ runs:
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
       env:
-        GITHUB_EVENT: ${{ env.GITHUB_EVENT_NAME }}
-        GITHUB_REPOSITORY_FULL: ${{ env.GITHUB_REPOSITORY }}
-        GITHUB_REPOSITORY_OWNER: ${{ env.GITHUB_REPOSITORY_OWNER }}
-        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
+        GITHUB_EVENT: ${{ github.event_name }}
+        GITHUB_REPOSITORY_FULL: ${{ github.repository }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
-        PROJECT_REPOSITORY: ${{ env.GITHUB_SERVER_URL }}/${{ env.GITHUB_REPOSITORY }}
+        PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         GITHUB_PAT: ${{ inputs.github_pat }}
-      if: ${{ env.GITHUB_EVENT_NAME == 'delete' }}
+      if: ${{ github.event_name == 'delete' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
