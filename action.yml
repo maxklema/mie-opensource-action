@@ -17,11 +17,7 @@ inputs:
     required: false
   http_port:
     required: false
-  deploy_on_start:
-    required: false
   project_root:
-    required: false
-  require_env_vars:
     required: false
   container_env_vars:
     required: false
@@ -32,8 +28,6 @@ inputs:
   start_command:
     required: false
   runtime_language:
-    required: false
-  require_services:
     required: false
   services:
     required: false
@@ -51,9 +45,24 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Check if action should run
+      shell: bash
+      id: should-run
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_CREATED: ${{ github.event.created }}
+      run: |
+        if [[ "$GITHUB_EVENT_NAME" != "push" ]] || [[ "$GITHUB_EVENT_CREATED" == "false" ]]; then
+          echo "should_run=true" >> $GITHUB_OUTPUT
+        else
+          echo "should_run=false" >> $GITHUB_OUTPUT
+          echo "Skipping action: Push event with created=true"
+        fi
+    
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
+      if: steps.should-run.outputs.should_run == 'true'
       env:
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
@@ -67,7 +76,6 @@ runs:
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         GITHUB_JOB: ${{ github.job }}
       run: |
-        set -x
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
@@ -117,6 +125,7 @@ runs:
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
+      if: steps.should-run.outputs.should_run == 'true'
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -190,6 +199,7 @@ runs:
 
     - name: Container Update on Branch Push
       shell: bash
+      if: steps.should-run.outputs.should_run == 'true'
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -241,6 +251,7 @@ runs:
 
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
+      if: steps.should-run.outputs.should_run == 'true'
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
