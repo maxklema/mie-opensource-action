@@ -17,11 +17,7 @@ inputs:
     required: false
   http_port:
     required: false
-  deploy_on_start:
-    required: false
   project_root:
-    required: false
-  require_env_vars:
     required: false
   container_env_vars:
     required: false
@@ -32,8 +28,6 @@ inputs:
   start_command:
     required: false
   runtime_language:
-    required: false
-  require_services:
     required: false
   services:
     required: false
@@ -51,9 +45,24 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Check if action should run
+      shell: bash
+      id: should-run
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_EVENT_CREATED: ${{ github.event.created }}
+      run: |
+        if [[ "$GITHUB_EVENT_NAME" != "push" ]] || [[ "$GITHUB_EVENT_CREATED" == "false" ]]; then
+          echo "should_run=true" >> $GITHUB_OUTPUT
+        else
+          echo "should_run=false" >> $GITHUB_OUTPUT
+          echo "Skipping action: Push event with created=true"
+        fi
+    
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
+      if: steps.should-run.outputs.should_run == 'true'
       env:
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
@@ -70,6 +79,7 @@ runs:
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
 
         # Auto-detect if this is a runner setup job based on job name or if no container inputs are provided
@@ -116,6 +126,7 @@ runs:
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
+      if: ${{ (github.event_name == 'create' || github.event_name == 'push') && steps.should-run.outputs.should_run == 'true' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -144,11 +155,11 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ github.event_name == 'create' || github.event_name == 'push' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != "true" ]; then
@@ -189,6 +200,7 @@ runs:
 
     - name: Container Update on Branch Push
       shell: bash
+      if: ${{ (github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true') && steps.should-run.outputs.should_run == 'true' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -212,11 +224,11 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
         echo "$LINUX_DISTRIBUTION"
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
@@ -240,6 +252,7 @@ runs:
 
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
+      if: ${{ github.event_name == 'delete' && steps.should-run.outputs.should_run == 'true' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -249,11 +262,11 @@ runs:
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         GITHUB_PAT: ${{ inputs.github_pat }}
-      if: ${{ github.event_name == 'delete' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
         STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
         if [ "$STOP_SCRIPT" != true ]; then
