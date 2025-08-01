@@ -125,7 +125,7 @@ runs:
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
-      if: steps.should-run.outputs.should_run == 'true'
+      if: ${{ (github.event_name == 'create' || github.event_name == 'push') && steps.should-run.outputs.should_run == 'true' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -154,7 +154,6 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ github.event_name == 'create' || github.event_name == 'push' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
@@ -199,7 +198,7 @@ runs:
 
     - name: Container Update on Branch Push
       shell: bash
-      if: steps.should-run.outputs.should_run == 'true'
+      if: ${{ (github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true') && steps.should-run.outputs.should_run == 'true' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -223,7 +222,6 @@ runs:
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
-      if: ${{ github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
@@ -251,7 +249,7 @@ runs:
 
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
-      if: steps.should-run.outputs.should_run == 'true'
+      if: ${{ github.event_name == 'delete' && steps.should-run.outputs.should_run == 'true' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -261,7 +259,6 @@ runs:
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         GITHUB_PAT: ${{ inputs.github_pat }}
-      if: ${{ github.event_name == 'delete' }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
