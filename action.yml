@@ -86,6 +86,7 @@ runs:
         CREATE_RUNNER_JOB="N"
         if [[ "$GITHUB_JOB" == *"setup"* ]] || [[ "$GITHUB_JOB" == *"runner"* ]]; then
           CREATE_RUNNER_JOB="Y"
+          echo "CREATE_RUNNER_JOB=true" >> $GITHUB_OUTPUT
         fi
 
         if [ ! -z "$GITHUB_PAT" ]; then
@@ -156,6 +157,7 @@ runs:
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
       run: |
+        set +e
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
@@ -182,19 +184,22 @@ runs:
             container-exists@$SSH_TARGET
           CONTAINER_EXISTS=$?
           if [ $CONTAINER_EXISTS -eq 1 ]; then
-            exit 1 # User does not own the container
+            echo "FAILED=1" >> $GITHUB_ENV # User does not own the container
           elif [ $CONTAINER_EXISTS -eq 0 ]; then
-              echo "Cloning repository based on $PROJECT_BRANCH branch."
+            echo "Cloning repository based on $PROJECT_BRANCH branch."
 
-              sshpass -p 'mie123!' ssh \
-               -T \
-               -o StrictHostKeyChecking=no \
-               -o UserKnownHostsFile=/dev/null \
-               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PUBLIC_KEY PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT" \
-               create-container@$SSH_TARGET 
-              
-              echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
-              exit $?
+            sshpass -p 'mie123!' ssh \
+              -T \
+              -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null \
+              -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PUBLIC_KEY PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT" \
+              create-container@$SSH_TARGET 
+            
+            echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
+            CONTAINER_CREATED=$?
+            if [ $CONTAINER_CREATED -ne 0 ]; then
+                echo "FAILED=1" >> $GITHUB_ENV
+            fi
           fi
         fi
 
@@ -223,8 +228,11 @@ runs:
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
         GITHUB_PAT: ${{ inputs.github_pat }}
+        HTTP_PORT: ${{ inputs.http_port }}
         GH_ACTION: y
       run: |
+        set +e
+        echo "Running Container Update..."
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
@@ -245,9 +253,12 @@ runs:
             -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION" \
+            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION HTTP_PORT" \
             update-container@$SSH_TARGET
-          exit $?
+          UPDATE_EXIT=$?
+          if [ $UPDATE_EXIT -ne 0 ]; then
+            echo "FAILED=1" >> $GITHUB_ENV
+          fi
         fi
 
     - name: Container Deletion on Branch Deletion (Check)
@@ -263,6 +274,7 @@ runs:
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         GITHUB_PAT: ${{ inputs.github_pat }}
       run: |
+        set +e
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
@@ -284,5 +296,181 @@ runs:
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME GITHUB_PAT PROJECT_REPOSITORY" \
             delete-container@$SSH_TARGET
-          exit $?
+          DELETE_EXIT=$?
+          if [ $DELETE_EXIT -ne 0 ]; then
+            echo "FAILED=1" >> $GITHUB_ENV
+          fi
         fi
+
+    - name: Check if branch is part of a PR and comment
+      shell: bash
+      id: check-pr
+      if: steps.should-run.outputs.should_run == 'true' && steps.create-runner.outputs.CREATE_RUNNER_JOB != 'true' && env.FAILED != '1'
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_pat }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        RUN_ID: ${{ github.run_id }}
+      run: |
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo "pr_number=" >> $GITHUB_OUTPUT
+          echo "is_pr=false" >> $GITHUB_OUTPUT
+          echo "No GitHub token provided, skipping PR detection"
+          exit 0
+        fi
+        
+        # Check if this branch has an open PR
+        PR_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${{ github.repository_owner }}:$GITHUB_REF_NAME")
+        
+        PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
+        
+        if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          echo "is_pr=true" >> $GITHUB_OUTPUT
+          echo "Branch $GITHUB_REF_NAME is part of PR #$PR_NUMBER"
+          
+          # Generate container name
+          REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+          CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+          CONTAINER_NAME=${CONTAINER_NAME,,}
+          CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
+          
+          # Create initial comment on PR
+          CONTAINER_URL="https://${CONTAINER_NAME}.opensource.mieweb.org"
+
+          COMMENT_BODY="## 🚀 Proxmox LaunchPad Action
+          **Expected URL**: [$CONTAINER_NAME]($CONTAINER_URL) *(will be available once deployment completes)*
+          **Status**: ✅ Application was deployed according to workflow configurations.
+          **Branch**: \`$GITHUB_REF_NAME\`
+          **Run ID**: [\`$RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID)
+          **Container Name**: \`$CONTAINER_NAME\`
+
+          > This comment was automatically generated by Proxmox LaunchPad: The fastest way to deploy your repository code. To use Proxmox in your own repository, see: [Proxmox LaunchPad](https://github.com/marketplace/actions/proxmox-launchpad)."
+
+          # Use jq to safely build the JSON payload from the variable
+          JSON_PAYLOAD=$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')
+
+          # Post the initial comment
+          curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            -d "$JSON_PAYLOAD" > /dev/null
+
+          echo "Initial comment posted to PR #$PR_NUMBER"
+        else
+          echo "pr_number=" >> $GITHUB_OUTPUT
+          echo "is_pr=false" >> $GITHUB_OUTPUT
+          echo "Branch $GITHUB_REF_NAME is not part of any open PR"
+        fi
+
+    - name: Comment on PR on Failure
+      if: env.FAILED == '1'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_pat }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        RUN_ID: ${{ github.run_id }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+      run: |
+        if [ -z "$GITHUB_TOKEN" ]; then
+          echo "Cannot comment on PR: missing token"
+          exit 1
+        fi
+
+        # Check if this branch has an open PR
+        PR_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:$GITHUB_REF_NAME")
+        
+        PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
+
+        if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" == "null" ]; then
+          echo "Not a pull request, skipping failure comment."
+          exit 0
+        fi
+
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+        CONTAINER_NAME=${CONTAINER_NAME,,}
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
+
+        CONTAINER_URL="https://${CONTAINER_NAME}.opensource.mieweb.org"
+
+        COMMENT_BODY="## 🚀 Proxmox LaunchPad Action
+        **Expected URL**: [$CONTAINER_NAME]($CONTAINER_URL) *(will be available once deployment completes)*
+        **Status**: ❌ Application failed to deploy. View [\`$RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID) to see logs.
+        **Branch**: \`$GITHUB_REF_NAME\`
+        **Run ID**: [\`$RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID)
+        **Container Name**: \`$CONTAINER_NAME\`
+
+        > This comment was automatically generated by Proxmox LaunchPad: The fastest way to deploy your repository code. To use Proxmox in your own repository, see: [Proxmox LaunchPad](https://github.com/marketplace/actions/proxmox-launchpad)."
+
+        JSON_PAYLOAD=$(jq -n --arg body "$COMMENT_BODY" '{body: $body}')
+
+        # Post the comment
+        curl -s -X POST \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/json" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+          -d "$JSON_PAYLOAD" > /dev/null
+
+        echo "Failure comment posted to PR #$PR_NUMBER"
+        exit 1
+
+    - name: Create GitHub Deployment (Default Branch)
+      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && env.FAILED != '1'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_pat }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_REF: ${{ github.ref }}
+        GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+      run: |
+        REPO_NAME=$(basename "$GITHUB_REPOSITORY")
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF#refs/heads/}"
+        CONTAINER_NAME=${CONTAINER_NAME,,}
+        CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
+        CONTAINER_URL="https://${CONTAINER_NAME}.opensource.mieweb.org"
+        DEPLOYMENT_RESPONSE=$(curl -s -X POST \
+          -H "Authorization: token $GITHUB_TOKEN" \
+          -H "Content-Type: application/json" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/deployments" \
+          -d '{
+            "ref": "'${GITHUB_REF#refs/heads/}'",
+            "required_contexts": [],
+            "environment": "Preview - '$GITHUB_REPOSITORY'",
+            "description": "Deployment triggered from Proxmox LaunchPad action.",
+            "sha": "'$GITHUB_SHA'"
+          }')
+        DEPLOYMENT_ID=$(echo "$DEPLOYMENT_RESPONSE" | jq -r '.id')
+        if [ "$DEPLOYMENT_ID" != "null" ] && [ -n "$DEPLOYMENT_ID" ]; then
+          curl -s -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/deployments/$DEPLOYMENT_ID/statuses" \
+            -d '{
+              "state": "success",
+              "description": "Deployment completed successfully.",
+              "environment": "Preview - '$GITHUB_REPOSITORY'",
+              "environment_url": "'$CONTAINER_URL'"
+            }' > /dev/null
+          echo "Deployment created and marked as successful for default branch: ${GITHUB_REF#refs/heads/}"
+          echo "Deployment URL: $CONTAINER_URL"
+        else
+          echo "Deployment creation failed."
+        fi
+
+    - name: Catch All Failure Step
+      if: env.FAILED == '1'
+      shell: bash
+      run: |
+        echo "Workflow failed. See previous steps for details."
+        exit 1
