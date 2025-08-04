@@ -59,6 +59,24 @@ runs:
           echo "Skipping action: Push event with created=true"
         fi
     
+    - name: Determine Target Branch Name
+      shell: bash
+      id: branch-name
+      if: steps.should-run.outputs.should_run == 'true'
+      env:
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
+        GITHUB_REF_NAME: ${{ github.ref_name }}
+        GITHUB_EVENT_REF: ${{ github.event.ref }}
+      run: |
+        if [[ "$GITHUB_EVENT_NAME" == "delete" ]]; then
+          TARGET_BRANCH="$GITHUB_EVENT_REF"
+          echo "Using deleted branch name: $TARGET_BRANCH"
+        else
+          TARGET_BRANCH="$GITHUB_REF_NAME"
+          echo "Using current branch name: $TARGET_BRANCH"
+        fi
+        echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
+    
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
@@ -66,7 +84,7 @@ runs:
       env:
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
+        TARGET_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
@@ -77,7 +95,7 @@ runs:
         GITHUB_JOB: ${{ github.job }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
-        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
@@ -132,7 +150,7 @@ runs:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
+        TARGET_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         CONTAINER_PASSWORD: ${{ inputs.container_password }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
@@ -140,7 +158,7 @@ runs:
         HTTP_PORT: ${{ inputs.http_port }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
-        PROJECT_BRANCH: ${{ github.ref_name }}
+        PROJECT_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
         CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
@@ -159,7 +177,7 @@ runs:
       run: |
         set +e
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
-        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
@@ -210,11 +228,11 @@ runs:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
+        TARGET_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
-        PROJECT_BRANCH: ${{ github.ref_name }}
+        PROJECT_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         PROJECT_ROOT: ${{ inputs.project_root }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
         START_COMMAND: ${{ inputs.start_command }}
@@ -234,7 +252,7 @@ runs:
         set +e
         echo "Running Container Update..."
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
-        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
@@ -268,7 +286,7 @@ runs:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
+        TARGET_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         PROXMOX_USERNAME: ${{ inputs.proxmox_username }}
         PROXMOX_PASSWORD: ${{ inputs.proxmox_password }}
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
@@ -276,7 +294,7 @@ runs:
       run: |
         set +e
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
-        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
@@ -309,7 +327,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_pat }}
         GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
+        TARGET_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         RUN_ID: ${{ github.run_id }}
       run: |
@@ -322,18 +340,18 @@ runs:
         
         # Check if this branch has an open PR
         PR_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${{ github.repository_owner }}:$GITHUB_REF_NAME")
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${{ github.repository_owner }}:$TARGET_BRANCH")
         
         PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
         
         if [ -n "$PR_NUMBER" ] && [ "$PR_NUMBER" != "null" ]; then
           echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           echo "is_pr=true" >> $GITHUB_OUTPUT
-          echo "Branch $GITHUB_REF_NAME is part of PR #$PR_NUMBER"
+          echo "Branch $TARGET_BRANCH is part of PR #$PR_NUMBER"
           
           # Generate container name
           REPO_NAME=$(basename "$GITHUB_REPOSITORY")
-          CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+          CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
           CONTAINER_NAME=${CONTAINER_NAME,,}
           CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
           
@@ -343,7 +361,7 @@ runs:
           COMMENT_BODY="## 🚀 Proxmox LaunchPad Action
           **Expected URL**: [$CONTAINER_NAME]($CONTAINER_URL) *(will be available once deployment completes)*
           **Status**: ✅ Application was deployed according to workflow configurations.
-          **Branch**: \`$GITHUB_REF_NAME\`
+          **Branch**: \`$TARGET_BRANCH\`
           **Run ID**: [\`$RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID)
           **Container Name**: \`$CONTAINER_NAME\`
 
@@ -364,7 +382,7 @@ runs:
         else
           echo "pr_number=" >> $GITHUB_OUTPUT
           echo "is_pr=false" >> $GITHUB_OUTPUT
-          echo "Branch $GITHUB_REF_NAME is not part of any open PR"
+          echo "Branch $TARGET_BRANCH is not part of any open PR"
         fi
 
     - name: Comment on PR on Failure
@@ -373,7 +391,7 @@ runs:
       env:
         GITHUB_TOKEN: ${{ inputs.github_pat }}
         GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_REF_NAME: ${{ github.ref_name }}
+        TARGET_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         RUN_ID: ${{ github.run_id }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
       run: |
@@ -384,7 +402,7 @@ runs:
 
         # Check if this branch has an open PR
         PR_DATA=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:$GITHUB_REF_NAME")
+          "https://api.github.com/repos/$GITHUB_REPOSITORY/pulls?state=open&head=${GITHUB_REPOSITORY_OWNER}:$TARGET_BRANCH")
         
         PR_NUMBER=$(echo "$PR_DATA" | jq -r '.[0].number // empty')
 
@@ -394,7 +412,7 @@ runs:
         fi
 
         REPO_NAME=$(basename "$GITHUB_REPOSITORY")
-        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${GITHUB_REF_NAME}"
+        CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
 
@@ -403,7 +421,7 @@ runs:
         COMMENT_BODY="## 🚀 Proxmox LaunchPad Action
         **Expected URL**: [$CONTAINER_NAME]($CONTAINER_URL) *(will be available once deployment completes)*
         **Status**: ❌ Application failed to deploy. View [\`$RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID) to see logs.
-        **Branch**: \`$GITHUB_REF_NAME\`
+        **Branch**: \`$TARGET_BRANCH\`
         **Run ID**: [\`$RUN_ID\`](https://github.com/$GITHUB_REPOSITORY/actions/runs/$RUN_ID)
         **Container Name**: \`$CONTAINER_NAME\`
 
