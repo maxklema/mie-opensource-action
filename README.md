@@ -2,7 +2,8 @@
 
 This GitHub action utilizes MIE's open source cluster to manage LXC containers derived from your github repository source code.
 
-> **Note**: This project is new and is in a early version. There are likely bugs. If you encounter any, please create an issue.
+> [!NOTE]
+> This project is new and is in a early version. There are likely bugs. If you encounter any, please create an issue.
 
 ## Table of Contents
 1. [Video Walkthroughs](#video-walkthroughs)
@@ -68,7 +69,8 @@ sequenceDiagram
 
 ## Getting Started
 
-> **WARNING**: This Github Action requires you to pass your Github Personal Access Token in order to create runners. If you are comfortable doing this, see [Create-Runner Job](#create-runner-workflow-job). If you are not, you may supply your own self-hosted runner and skip to [Manage-Container Job](#manage-container-workflow-job).
+> [!WARNING]
+> This Github Action requires you to pass your Github Personal Access Token in order to create runners. If you are comfortable doing this, see [Create-Runner Job](#create-runner-workflow-job). If you are not, you may supply your own self-hosted runner and skip to [Manage-Container Job](#manage-container-workflow-job).
 
 To use this action in your repository, you need to add the following trigger events in a workflow file:
 
@@ -82,6 +84,9 @@ on:
 This allows a container to be created/updated on a push command, created when a new branch is created, and deleted when a branch is deleted (like in the case of an accepted PR).
 
 ### Create-Runner Workflow Job
+
+> [!CAUTION]
+> If you choose to pass in your GitHub Personal Access Token, keep it in a secure place and do not share it with anyone.
 
 #### Creating a GitHub PAT for your Workflow
 
@@ -119,7 +124,8 @@ To see an explanation for these fields: See [Basic Properties](#basic-properties
 
 The second job in your workflow file should look similar to this:
 
-> **NOTE**: If you chose to run this on your own self-hosted runner instead of the action creating one for you, this will be your first job. Therefore, the needs parameter is not needed.
+> [!NOTE]
+> If you chose to run this on your own self-hosted runner instead of the action creating one for you, this will be your first job. Therefore, the needs parameter is not needed.
 
 ```yaml
  manage-container:
@@ -162,18 +168,20 @@ This github action can *attempt* to automatically deploy services on your contai
 
 Additionally, with automatic deployment enabled, your container will update on every push command automatically, preventing you from having to SSH into the container and setting it up manually.
 
-> **NOTE**: Properties below that are required assuming you want to automatically deploy your project. If not, none of these properties are needed.
+> [!NOTE]
+> Properties below that are required assuming you want to automatically deploy your project. If not, none of these properties are needed.
 
 | Propety | Required? | Description |
 | --------- | ----- |  ------------------------------------ |
 | `project_root` | No | The root directory of your project to deploy from. Example: `/flask-server`. If the root directory is the same as the github root directory, leave blank.
 | `services` | No | A JSON array of services to add to your container. Example: ```services: '["mongodb", "docker"]'```. These services will automatically install and start up on container creation. **NOTE**: All services in this list must belong on the list of available services below. If you need a service that is not on the list, see `custom_services`.<br><br> Available Services: `meteor`, `mongodb`, `docker`, `redis`, `postgresql`, `apache`, `nginx`, `rabbitmq`, `memcached`, `mariadb`.
 | `custom_services` | No | A 2D JSON array of custom service installation commands to install any custom service(s) not in `services`.<br> <br>Example: ```custom_services: [["sudo apt-get install -y service", "sudo systemctl enable service", "sudo systemctl start service"], ["sudo apt-get install -y service2", "sudo systemctl enable service2", "sudo systemctl start service2"]]```
-| `multi_component` | No | Set to `y` if your application is multi-component, meaning more than one service must run concurrently. See the paragraph below for more information.
+
 
 There are two types of deployments: single component and multi-component deployment. Single component deployment involves deploying only a single service (i.e. a single Flask Server, REACT application, MCP Server, etc.). Multi-component deployment involves deploying more than one service at the same time (i.e. a flask backend and a vite.js backend).
 
-> **Important**: In Multi-Component applications, each top-layer key represents the file path, relative to the root directory, to the component (service) to place those variables/commands in. 
+> [!IMPORTANT]
+> In Multi-Component applications, each top-layer key represents the file path, relative to the root directory, to the component (service) to place those variables/commands in. 
 
 | Propety | Required? | Description | Single Component | Multi-Component |
 | --------- | ----- |  ------------------------------------ | ---- | --- |
@@ -187,7 +195,8 @@ There are two types of deployments: single component and multi-component deploym
 ## Important Notes for Automatic Deployment
 
 Below are some important things to keep in mind if you want your application to be automatically deployed:
-- If you are using meteor, you must start your application with the flag ``--allow-superuser``.
+- If you are using meteor, you must start your application with the flags ``--allow-superuser`` and `--port 0.0.0.0:<http-port>`.
+  - Meteor is a large package, so deploying it may take more time than other applications.
 - When running a service, ensure it is listening on `0.0.0.0` (your IP) instead of only locally at `127.0.0.1`.
 - The Github action will fail with an exit code and message if a property is not set up correctly.
 
@@ -221,7 +230,8 @@ Still not working? Contact Max K. at maxklema@gmail.com
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-> **NOTE**: Even if your GitHub Action workflow is finished, *it may not be accessible right away. Background tasks (migration, template cloning, cleanup, etc) are still be ran in detatched terminal sessions*. Wait up to two minutes for all tasks to complete.
+> [!NOTE]
+> Even if your GitHub Action workflow is finished, *it may not be accessible right away. Background tasks (migration, template cloning, cleanup, etc) are still be ran in detatched terminal sessions*. Wait a few minutes for all tasks to complete.
 
 ## Sample Workflow File
 
