@@ -125,7 +125,7 @@ runs:
           echo "Creating a Runner..."
           set +e
           sshpass -p 'mie123!' ssh \
-            -tt \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PROXMOX_PASSWORD GITHUB_PAT LINUX_DISTRIBUTION PROJECT_REPOSITORY" \
@@ -195,7 +195,7 @@ runs:
           fi
           
           sshpass -p 'mie123!' ssh \
-            -tt \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY" \
@@ -207,7 +207,7 @@ runs:
             echo "Cloning repository based on $PROJECT_BRANCH branch."
 
             sshpass -p 'mie123!' ssh \
-              -tt \
+              -T \
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PUBLIC_KEY PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT" \
@@ -268,7 +268,7 @@ runs:
           fi
           
           sshpass -p 'mie123!' ssh \
-            -tt \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION HTTP_PORT" \
@@ -309,7 +309,7 @@ runs:
           fi
           
           sshpass -p 'mie123!' ssh \
-            -tt \
+            -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME GITHUB_PAT PROJECT_REPOSITORY" \
