@@ -135,7 +135,7 @@ runs:
 
           # Exit if a container exists but an associated runner does not.
           if [ $EXIT_STATUS != 3 ]; then
-            echo "You do not have a github runner called $CONTAINER_NAME to run this action. Add one to your container and then retry the script."
+            echo "Something went wrong with creating/using a runner."
             exit 1
           fi
 
@@ -175,7 +175,6 @@ runs:
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
       run: |
-        set -x
         set +e
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
