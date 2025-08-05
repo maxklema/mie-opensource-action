@@ -175,6 +175,7 @@ runs:
         GITHUB_PAT: ${{ inputs.github_pat }}
         GH_ACTION: y
       run: |
+        set -x
         set +e
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
