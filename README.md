@@ -90,7 +90,7 @@ This allows a container to be created/updated on a push command, created when a 
 
 #### Creating a GitHub PAT for your Workflow
 
-This Github Action requires you to pass your Github Personal Access Token in order to create runners. To create a PAT, navigate to your GitHub account settings. Then, on the bottom left-hand side, click developer settings. Navigate to Personal Access Tokens (classic). Click on generate new token, then give your token a name and an expiration date. Finally, select the manage_runners:org permission or the manage_runners:enterprise permission, depending on where your repository is housed. Finally, a token should be generated. Make sure to place the token somewhere securely. Then, add it as a repository secret in the repository that you want to run your workflow file in.
+This Github Action requires you to pass your Github Personal Access Token in order to create runners. To create a PAT ([Personal Access Token]([url](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens))), navigate to your GitHub account settings. Then, on the bottom left-hand side, click developer settings. Navigate to Personal Access Tokens (classic). Click on generate new token, then give your token a name and an expiration date. Finally, select the manage_runners:org permission or the manage_runners:enterprise permission, depending on where your repository is housed. Finally, a token should be generated. Make sure to place the token somewhere securely. Then, add it as a repository secret in the repository that you want to run your workflow file in.
 
 #### Runner Job
 
