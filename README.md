@@ -237,8 +237,6 @@ Still not working? Contact Max K. at maxklema@gmail.com
 
 The workflow file below is an example workflow designed to deploy a multi-component application with a python (flask) backend and nodejs (vite) frontend:
 
-**With PAT:**
-
 ```yaml
 name: Proxmox Container Management
 
@@ -267,7 +265,7 @@ jobs:
         with:
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
           proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
-          public_key: ${{ secrets.PUBLIC_KEY }}
+          github_pat: ${{ secrets.GH_PAT }}
           container_env_vars: '{"API_KEY": "1234"}'
           install_command: npm i
           start_command: npm start
@@ -275,33 +273,8 @@ jobs:
           services: '["mongodb"]'
 ```
 
-**Without PAT:**
-
-```yaml
-name: Proxmox Container Management
-
-on:
-  push:
-  create:
-  delete:
-
-jobs:
-  manage-container:
-    runs-on: self-hosted
-    needs: setup-runner
-    steps:
-      - uses: maxklema/proxmox-launchpad@test
-        with:
-          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
-          public_key: ${{ secrets.PUBLIC_KEY }}
-          container_env_vars: '{"API_KEY": "1234"}'
-          install_command: npm i
-          start_command: npm start
-          runtime_language: nodejs
-          services: '["mongodb"]'
-```
-
+> [!IMPORTANT]
+> If you are not supplying a PAT, then you can omit the setup-runner job and use only the manage-container job.
 
 ## Misc.
 Feel free to submit a PR/issue here or in [opensource-server](https://github.com/mieweb/opensource-server).
