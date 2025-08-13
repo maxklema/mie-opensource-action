@@ -207,7 +207,7 @@ runs:
             echo "Cloning repository based on $PROJECT_BRANCH branch."
 
             if [ -z "$GITHUB_PAT" ]; then
-               SELF_HOSTED_RUNNER="N"
+               export SELF_HOSTED_RUNNER="N"
             fi
             
             sshpass -p 'mie123!' ssh \
