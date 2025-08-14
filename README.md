@@ -182,14 +182,21 @@ jobs:
         with:
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
           proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
+          github_pat: ${{ secrets.GH_PAT }}
           # Add other configuration options as needed
 ```
+
+
+> [!TIP]
+> It is recommended to also pass your `github_pat` in the manage-container job, too. This allows Proxmox Launchpad to create deployments on every update to your main branch. Additionally, if a branch is part of an open pull request, Proxmox Launchpad will comment on that PR with information regarding the public domain for that container, the job status, and the job ID, allowing others to easily access it.
 
 **What happens with automatic runner provisioning:**
 - A new runner is created for each branch
 - Runners are automatically deleted when branches are deleted
 - Each branch gets its own dedicated container and runner
 - Complete lifecycle management (no manual cleanup needed)
+
+
 
 ## Configurations
 
@@ -339,6 +346,7 @@ jobs:
         with:
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
           proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
+          github_pat: ${{ secrets.GH_PAT }}
           container_env_vars: '{"API_KEY": "1234"}'
           install_command: npm i
           start_command: npm start
