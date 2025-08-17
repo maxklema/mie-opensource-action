@@ -160,7 +160,6 @@ runs:
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
         PROJECT_BRANCH: ${{ steps.branch-name.outputs.target_branch }}
         PROJECT_ROOT: ${{ inputs.project_root }}
-        REQUIRE_ENV_VARS: ${{ inputs.require_env_vars }}
         CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
         INSTALL_COMMAND: ${{ inputs.install_command }}
         START_COMMAND: ${{ inputs.start_command }}
@@ -249,6 +248,7 @@ runs:
         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
         DEPLOY_ON_START: ${{ inputs.deploy_on_start }}
         ROOT_START_COMMAND: ${{ inputs.root_start_command }}
+        CONTAINER_ENV_VARS: ${{ inputs.container_env_vars }}
         GITHUB_PAT: ${{ inputs.github_pat }}
         HTTP_PORT: ${{ inputs.http_port }}
         GH_ACTION: y
@@ -275,7 +275,7 @@ runs:
             -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION HTTP_PORT" \
+            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION HTTP_PORT" \
             update-container@$SSH_TARGET
           UPDATE_EXIT=$?
           if [ $UPDATE_EXIT -ne 0 ]; then
