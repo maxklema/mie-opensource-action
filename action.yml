@@ -58,6 +58,18 @@ runs:
           echo "should_run=false" >> $GITHUB_OUTPUT
           echo "Skipping action: Push event with created=true"
         fi
+
+    - name: Check if job is a create runner job
+      shell: bash
+      id: check-job
+      env: 
+         GITHUB_JOB: ${{ github.job }}
+      run: |
+        if [[ "$GITHUB_JOB" == *"setup"* || "$GITHUB_JOB" == *"runner"* ]]; then
+          echo "runner_job=true" >> $GITHUB_OUTPUT
+        else
+          echo "runner_job=false" >> $GITHUB_OUTPUT
+        fi
     
     - name: Determine Target Branch Name
       shell: bash
@@ -76,11 +88,15 @@ runs:
           echo "Using current branch name: $TARGET_BRANCH"
         fi
         echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
+        echo "GITHUB EVENT TRIGGER: $GITHUB_EVENT_NAME"
+        echo "Runner name: $RUNNER_NAME"
+        echo "Runner OS:   $RUNNER_OS"
+        echo "Runner Arch: $RUNNER_ARCH"
     
     - name: Create Runner (If Needed)
       shell: bash
       id: create-runner
-      if: steps.should-run.outputs.should_run == 'true'
+      if: steps.should-run.outputs.should_run == 'true' && steps.check-job.outputs.runner_job == 'true' && github.event_name != 'delete'
       env:
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
         GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
@@ -92,7 +108,6 @@ runs:
         GITHUB_API: ${{ github.api_url }}
         LINUX_DISTRIBUTION: ${{ inputs.linux_distribution }}
         PROJECT_REPOSITORY: ${{ github.server_url }}/${{ github.repository }}
-        GITHUB_JOB: ${{ github.job }}
       run: |
         REPO_NAME=$(basename "$GITHUB_REPOSITORY_FULL")
         CONTAINER_NAME="${GITHUB_REPOSITORY_OWNER}-${REPO_NAME}-${TARGET_BRANCH}"
@@ -100,25 +115,13 @@ runs:
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
 
-        # Auto-detect if this is a runner setup job based on job name or if no container inputs are provided
-        CREATE_RUNNER_JOB="N"
-        if [[ "$GITHUB_JOB" == *"setup"* ]] || [[ "$GITHUB_JOB" == *"runner"* ]]; then
-          CREATE_RUNNER_JOB="Y"
-          echo "CREATE_RUNNER_JOB=true" >> $GITHUB_OUTPUT
-        fi
-
         if [ ! -z "$GITHUB_PAT" ]; then
           RESPONSE=$(curl --location ${GITHUB_API}/repos/${GITHUB_REPOSITORY_OWNER}/${REPO_NAME}/actions/runners --header "Authorization: token $GITHUB_PAT")
 
           while read -r RUN; do
               RUNNER_NAME=$(echo "$RUN" | jq -r '.name')
               if [ "$RUNNER_NAME" == "$CONTAINER_NAME" ]; then
-                if [ "${CREATE_RUNNER_JOB^^}" == "N" ]; then
-                    exit 0 #Runner exists, continue to next steps
-                else
-                    echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
-                    exit 0 # Runner exists, continue to next job.
-                fi
+                  exit 0 # Runner exists, continue to next job.
               fi
           done < <(echo "$RESPONSE" | jq -c '.runners[]')
 
@@ -135,17 +138,16 @@ runs:
 
           # Exit if a container exists but an associated runner does not.
           if [ $EXIT_STATUS != 3 ]; then
-            echo "Something went wrong with creating/using a runner."
+            echo "Something went wrong with creating a runner."
             exit 1
           fi
-
-          echo "STOP_SCRIPT=true" >> $GITHUB_OUTPUT
+          exit 0 #Runner is created, no other steps need to be ran. Exit early.
         fi
 
     - name: Container Creation for Branch (If Needed)
       id: create-lxc
       shell: bash
-      if: ${{ (github.event_name == 'create' || github.event_name == 'push') && steps.should-run.outputs.should_run == 'true' }}
+      if: ${{ (github.event_name == 'create' || github.event_name == 'push') && steps.should-run.outputs.should_run == 'true' && steps.check-job.outputs.runner_job == 'false' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -180,53 +182,50 @@ runs:
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
-        STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
-        if [ "$STOP_SCRIPT" != "true" ]; then
-          set +e
-          echo "Running Container Exists..."
-          
-          # Determine SSH target based on network location
-          EXTERNAL_IP=$(dig +short opensource.mieweb.org)
-          if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
-            SSH_TARGET="10.15.0.4"
-          else
-            SSH_TARGET="opensource.mieweb.org"
+        set +e
+        echo "Running Container Exists..."
+        
+        # Determine SSH target based on network location
+        EXTERNAL_IP=$(dig +short opensource.mieweb.org)
+        if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
+          SSH_TARGET="10.15.0.4"
+        else
+          SSH_TARGET="opensource.mieweb.org"
+        fi
+        
+        sshpass -p 'mie123!' ssh \
+          -T \
+          -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile=/dev/null \
+          -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY" \
+          container-exists@$SSH_TARGET
+        CONTAINER_EXISTS=$?
+        if [ $CONTAINER_EXISTS -eq 1 ]; then
+          echo "FAILED=1" >> $GITHUB_ENV # User does not own the container
+        elif [ $CONTAINER_EXISTS -eq 0 ]; then
+          echo "Cloning repository based on $PROJECT_BRANCH branch."
+
+          if [ -z "$GITHUB_PAT" ]; then
+             export SELF_HOSTED_RUNNER="N"
           fi
           
           sshpass -p 'mie123!' ssh \
             -T \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME PROJECT_REPOSITORY" \
-            container-exists@$SSH_TARGET
-          CONTAINER_EXISTS=$?
-          if [ $CONTAINER_EXISTS -eq 1 ]; then
-            echo "FAILED=1" >> $GITHUB_ENV # User does not own the container
-          elif [ $CONTAINER_EXISTS -eq 0 ]; then
-            echo "Cloning repository based on $PROJECT_BRANCH branch."
+            -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PUBLIC_KEY PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT SELF_HOSTED_RUNNER" \
+            create-container@$SSH_TARGET 
 
-            if [ -z "$GITHUB_PAT" ]; then
-               export SELF_HOSTED_RUNNER="N"
-            fi
-            
-            sshpass -p 'mie123!' ssh \
-              -T \
-              -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null \
-              -o SendEnv="CONTAINER_NAME CONTAINER_PASSWORD PROXMOX_USERNAME PUBLIC_KEY PROXMOX_PASSWORD HTTP_PORT DEPLOY_ON_START PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT REQUIRE_ENV_VARS CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND RUNTIME_LANGUAGE REQUIRE_SERVICES SERVICES CUSTOM_SERVICES LINUX_DISTRIBUTION MULTI_COMPONENT ROOT_START_COMMAND GH_ACTION GITHUB_PAT SELF_HOSTED_RUNNER" \
-              create-container@$SSH_TARGET 
-
-            CONTAINER_CREATED=$?
-            echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
-            if [ $CONTAINER_CREATED -ne 0 ]; then
-                echo "FAILED=1" >> $GITHUB_ENV
-            fi
+          CONTAINER_CREATED=$?
+          echo "CONTAINER_CREATED=true" >> $GITHUB_OUTPUT
+          if [ $CONTAINER_CREATED -ne 0 ]; then
+              echo "FAILED=1" >> $GITHUB_ENV
           fi
         fi
 
     - name: Container Update on Branch Push
       shell: bash
-      if: ${{ (github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true') && steps.should-run.outputs.should_run == 'true' }}
+      if: ${{ (github.event_name == 'push' && steps.create-lxc.outputs.CONTAINER_CREATED != 'true') && steps.should-run.outputs.should_run == 'true' && steps.check-job.outputs.runner_job == 'false' }}
       env:
         GITHUB_EVENT: ${{ github.event_name }}
         GITHUB_REPOSITORY_FULL: ${{ github.repository }}
@@ -260,29 +259,26 @@ runs:
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
-        echo "$LINUX_DISTRIBUTION"
-        STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
-        if [ "$STOP_SCRIPT" != true ]; then
-          # Determine SSH target based on network location
-          EXTERNAL_IP=$(dig +short opensource.mieweb.org)
-          if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
-            SSH_TARGET="10.15.0.4"
-          else
-            SSH_TARGET="opensource.mieweb.org"
-          fi
-          
-          sshpass -p 'mie123!' ssh \
-            -T \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION HTTP_PORT" \
-            update-container@$SSH_TARGET
-          UPDATE_EXIT=$?
-          if [ $UPDATE_EXIT -ne 0 ]; then
-            echo "FAILED=1" >> $GITHUB_ENV
-          fi
+        
+        # Determine SSH target based on network location
+        EXTERNAL_IP=$(dig +short opensource.mieweb.org)
+        if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
+          SSH_TARGET="10.15.0.4"
+        else
+          SSH_TARGET="opensource.mieweb.org"
         fi
-
+        
+        sshpass -p 'mie123!' ssh \
+          -T \
+          -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile=/dev/null \
+          -o SendEnv="CONTAINER_NAME PROXMOX_USERNAME PROXMOX_PASSWORD PROJECT_REPOSITORY PROJECT_BRANCH PROJECT_ROOT CONTAINER_ENV_VARS INSTALL_COMMAND START_COMMAND BUILD_COMMAND RUNTIME_LANGUAGE MULTI_COMPONENT ROOT_START_COMMAND DEPLOY_ON_START SERVICES CUSTOM_SERVICES REQUIRE_SERVICES LINUX_DISTRIBUTION GH_ACTION HTTP_PORT" \
+          update-container@$SSH_TARGET
+        UPDATE_EXIT=$?
+        if [ $UPDATE_EXIT -ne 0 ]; then
+          echo "FAILED=1" >> $GITHUB_ENV
+        fi
+      
     - name: Container Deletion on Branch Deletion (Check)
       shell: bash
       if: ${{ github.event_name == 'delete' && steps.should-run.outputs.should_run == 'true' }}
@@ -302,32 +298,29 @@ runs:
         CONTAINER_NAME=${CONTAINER_NAME,,}
         CONTAINER_NAME=$(echo "$CONTAINER_NAME" | sed 's/[^a-z0-9-]/-/g')
         export CONTAINER_NAME
-        STOP_SCRIPT=${{ steps.create-runner.outputs.STOP_SCRIPT }}
-        if [ "$STOP_SCRIPT" != true ]; then
-          # Determine SSH target based on network location
-          EXTERNAL_IP=$(dig +short opensource.mieweb.org)
-          if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
-            SSH_TARGET="10.15.0.4"
-          else
-            SSH_TARGET="opensource.mieweb.org"
-          fi
-          
-          sshpass -p 'mie123!' ssh \
-            -T \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
-            -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME GITHUB_PAT PROJECT_REPOSITORY" \
-            delete-container@$SSH_TARGET
-          DELETE_EXIT=$?
-          if [ $DELETE_EXIT -ne 0 ]; then
-            echo "FAILED=1" >> $GITHUB_ENV
-          fi
+        # Determine SSH target based on network location
+        EXTERNAL_IP=$(dig +short opensource.mieweb.org)
+        if [ "$EXTERNAL_IP" = "10.15.20.69" ]; then
+          SSH_TARGET="10.15.0.4"
+        else
+          SSH_TARGET="opensource.mieweb.org"
+        fi
+        
+        sshpass -p 'mie123!' ssh \
+          -T \
+          -o StrictHostKeyChecking=no \
+          -o UserKnownHostsFile=/dev/null \
+          -o SendEnv="PROXMOX_USERNAME PROXMOX_PASSWORD CONTAINER_NAME GITHUB_PAT PROJECT_REPOSITORY" \
+          delete-container@$SSH_TARGET
+        DELETE_EXIT=$?
+        if [ $DELETE_EXIT -ne 0 ]; then
+          echo "FAILED=1" >> $GITHUB_ENV
         fi
 
     - name: Check if branch is part of a PR and comment
       shell: bash
       id: check-pr
-      if: steps.should-run.outputs.should_run == 'true' && steps.create-runner.outputs.CREATE_RUNNER_JOB != 'true' && env.FAILED != '1'
+      if: steps.should-run.outputs.should_run == 'true' && steps.check-job.outputs.runner_job == 'false' && env.FAILED != '1'
       env:
         GITHUB_TOKEN: ${{ inputs.github_pat }}
         GITHUB_REPOSITORY: ${{ github.repository }}
