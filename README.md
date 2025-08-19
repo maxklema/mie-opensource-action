@@ -74,7 +74,7 @@ sequenceDiagram
     else Delete event
         GHAR->>LXC: Call delete-container script
         LXC->>Prox: Remove runner (if automatic runner provisioning is enabled) and delete LXC container
-    end                  
+    end
 ```
 
 ## Prerequisites
@@ -115,7 +115,7 @@ jobs:
     steps:
       - uses: maxklema/proxmox-launchpad@main
         with:
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
+          proxmox_username: your-username
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
           # No github_pat needed for this path
           # Add other configuration options as needed
@@ -170,7 +170,7 @@ jobs:
 
       - uses: maxklema/proxmox-launchpad@main
         with:
-          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
+          proxmox_password: your-username
           proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
           github_pat: ${{ secrets.GH_PAT }}
 
@@ -237,16 +237,19 @@ Additionally, with automatic deployment enabled, your container will update on e
 There are two types of deployments: single component and multi-component deployment. Single component deployment involves deploying only a single service (i.e. a single Flask Server, REACT application, MCP Server, etc.). Multi-component deployment involves deploying more than one service at the same time (i.e. a flask backend and a vite.js backend).
 
 > [!IMPORTANT]
-> In Multi-Component applications, each top-layer key represents the file path, relative to the root directory, to the component (service) to place those variables/commands in. 
+> In Multi-Component applications, each top-layer key represents the file path, relative to the root directory, to the component (service) to place those variables/commands in.
 
 | Propety | Required? | Description | Single Component | Multi-Component |
 | --------- | ----- |  ------------------------------------ | ---- | --- |
+|  `multi_component` | Conditional | A `y` flag that specifies if your application is multi-component. This only needs to be set if your application is multi-component. | N/A | A string of `y`.
 |  `container_env_vars` | No. | Key-Value Environment variable pairs. | Dictionary in the form of: `{ "api_key": "123", "password": "abc"}` | Dictionary in the form of: `'{"/frontend": { "api_key": "123"}, "/backend": { "password": "abc123" }}'`.
-|  `install_command` | Yes | Commands to install all project dependencies | String of the installation command, i.e. `npm install`. | Dictionary in the form of: `'{"/frontend": "npm install", "/backend": "pip install -r ../requirements.txt"}'`.
+|  `install_command` | Yes* | Commands to install all project dependencies | String of the installation command, i.e. `npm install`. | Dictionary in the form of: `'{"/frontend": "npm install", "/backend": "pip install -r ../requirements.txt"}'`.
 |  `build_command` | No | Commands to build project components | String of the build command, i.e. `npm build`. | Dictionary in the form of: `'{"/frontend": "npm build", "/backend": "python3 build.py"}'`.
-|  `start_command` | Yes | Commands to start project components. | String of the start command, i.e. `npm run`. | Dictionary in the form of: `'{"/frontend": "npm run", "/backend": "flask run"}'`.
-|  `runtime_language` | Yes | Runtime language of each project component, which can either be `nodejs` or `python`. | String of runtime environment, i.e. `nodejs` | Dictionary in the form of: `'{"/frontend": "nodejs", "/backend": "python"}'`.
-|  `root_start_command` | No | Command to run at the project directory root for **multi-component applications**. | N/A | String of the command, i.e. `Docker run`
+|  `start_command` | Yes* | Commands to start project components. | String of the start command, i.e. `npm run`. | Dictionary in the form of: `'{"/frontend": "npm run", "/backend": "flask run"}'`.
+|  `runtime_language` | Yes* | Runtime language of each project component, which can either be `nodejs` or `python`. | String of runtime environment, i.e. `nodejs` | Dictionary in the form of: `'{"/frontend": "nodejs", "/backend": "python"}'`.
+|  `root_start_command` | No | Command to run at the project directory root for **multi-component applications**. | N/A | String of the command, i.e. `Docker-compose up ...`
+
+> * These options are only required if `root_start_command` is not provided, as that command may be a docker build and/or a docker compose command that builds the entire application.
 
 ## Important Notes for Automatic Deployment
 
@@ -255,6 +258,8 @@ Below are some important things to keep in mind if you want your application to 
   - Meteor is a large package, so deploying it may take more time than other applications.
 - When running a service, ensure it is listening on `0.0.0.0` (your IP) instead of only locally at `127.0.0.1`.
 - The Github action will fail with an exit code and message if a property is not set up correctly.
+- If you are using vite.js as a frontend service, you need to add the domain name of your container in the allowHosts array in your vite.config.js file.
+- When specifying the path to the component, ensure it is **relative to the project root directory**. For example, if your project root is `/home/user/my-project`, and your component is located at `/home/user/my-project/frontend`, you should specify the path as `./frontend`, `frontend/`, or `frontend`.
 
 ## Output
 
@@ -306,7 +311,7 @@ jobs:
     steps:
       - uses: maxklema/proxmox-launchpad@main
         with:
-          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
+          proxmox_password: your-username
           proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
           container_env_vars: '{"API_KEY": "1234"}'
           install_command: npm i
@@ -334,8 +339,8 @@ jobs:
           sudo apt install -y sshpass jq
       - uses: maxklema/proxmox-launchpad@main
         with:
+          proxmox_username: your-username
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
           github_pat: ${{ secrets.GH_PAT }}
 
   manage-container:
@@ -344,8 +349,8 @@ jobs:
     steps:
       - uses: maxklema/proxmox-launchpad@main
         with:
+          proxmox_username: your-username
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
           github_pat: ${{ secrets.GH_PAT }}
           container_env_vars: '{"API_KEY": "1234"}'
           install_command: npm i
