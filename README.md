@@ -170,8 +170,8 @@ jobs:
 
       - uses: maxklema/proxmox-launchpad@main
         with:
-          proxmox_password: your-username
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
+          proxmox_username: your-username
+          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
           github_pat: ${{ secrets.GH_PAT }}
 
   manage-container:
@@ -180,8 +180,8 @@ jobs:
     steps:
       - uses: maxklema/proxmox-launchpad@main
         with:
+          proxmox_username: your-username
           proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
           github_pat: ${{ secrets.GH_PAT }}
           # Add other configuration options as needed
 ```
@@ -249,7 +249,7 @@ There are two types of deployments: single component and multi-component deploym
 |  `runtime_language` | Yes* | Runtime language of each project component, which can either be `nodejs` or `python`. | String of runtime environment, i.e. `nodejs` | Dictionary in the form of: `'{"/frontend": "nodejs", "/backend": "python"}'`.
 |  `root_start_command` | No | Command to run at the project directory root for **multi-component applications**. | N/A | String of the command, i.e. `Docker-compose up ...`
 
-> * These options are only required if `root_start_command` is not provided, as that command may be a docker build and/or a docker compose command that builds the entire application.
+> * (*) These options are only required if `root_start_command` is not provided, as that command may be a docker build and/or a docker compose command that builds the entire application.
 
 ## Important Notes for Automatic Deployment
 
@@ -311,8 +311,8 @@ jobs:
     steps:
       - uses: maxklema/proxmox-launchpad@main
         with:
-          proxmox_password: your-username
-          proxmox_username: ${{ secrets.PROXMOX_USERNAME }}
+          proxmox_username: your-username
+          proxmox_password: ${{ secrets.PROXMOX_PASSWORD }}
           container_env_vars: '{"API_KEY": "1234"}'
           install_command: npm i
           start_command: npm start
